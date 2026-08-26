@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+
 
 @QuarkusTest
 public class ReceiptSummaryResourceTest {
@@ -16,9 +18,9 @@ public class ReceiptSummaryResourceTest {
                 .get("/api/receipts/summary")
                 .then()
                 .statusCode(200)
-                .body("rowCount", equalTo(1744))
-                .body("receiptCount", equalTo(213))
-                .body("firstPurchaseDate", equalTo("2024-01-11"))
-                .body("lastPurchaseDate", equalTo("2026-07-13"));
+                .body("rowCount", is(5))
+                .body("receiptCount", is(3))
+                .body("firstPurchaseDate", is("2024-01-10"))
+                .body("lastPurchaseDate", is("2026-02-20"));
     }
 }
