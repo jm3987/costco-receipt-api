@@ -1,13 +1,13 @@
-package dev.shelfspace.receipts;
+package dev.shelfspace.receipts.resource;
 
 
+import dev.shelfspace.receipts.service.ReceiptSummaryService;
+import dev.shelfspace.receipts.model.ReceiptSummary;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-
-import java.time.LocalDate;
 
 
 @Path("/api/receipts/summary")

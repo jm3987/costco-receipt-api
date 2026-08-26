@@ -1,5 +1,7 @@
-package dev.shelfspace.receipts;
+package dev.shelfspace.receipts.service;
 
+import dev.shelfspace.receipts.model.ReceiptDetail;
+import dev.shelfspace.receipts.model.ReceiptItem;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.commons.csv.CSVFormat;
@@ -20,6 +22,7 @@ import java.util.Optional;
 
 @ApplicationScoped
 public class ReceiptService {
+
     private final Path csvPath;
 
     @Inject
@@ -42,12 +45,12 @@ public class ReceiptService {
         ) {
             CSVRecord receiptRecord = null;
 
-            for (CSVRecord record : parser){
-                if (!orderNumber.equals(record.get("order_number"))){
+            for (CSVRecord record : parser) {
+                if (!orderNumber.equals(record.get("order_number"))) {
                     continue;
                 }
 
-                if (receiptRecord == null){
+                if (receiptRecord == null) {
                     receiptRecord = record;
                 }
 
@@ -69,23 +72,18 @@ public class ReceiptService {
                     receiptRecord.get("order_number"),
                     receiptRecord.get("receipt_id"),
                     receiptRecord.get("receipt_type"),
-                    LocalDate.parse(receiptRecord.get("transactionDate")),
+                    LocalDate.parse(receiptRecord.get("transaction_date")),
                     receiptRecord.get("warehouse_info"),
                     new BigDecimal(receiptRecord.get("subtotal")),
                     new BigDecimal(receiptRecord.get("tax_total")),
                     new BigDecimal(receiptRecord.get("final_total")),
                     List.copyOf(items)
             ));
-
-
         } catch (IOException exception) {
             throw new UncheckedIOException(
                     "Unable to read receipt CSV: " + csvPath,
                     exception
             );
         }
-
-
     }
-
 }

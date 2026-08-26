@@ -1,6 +1,6 @@
-order_number,transaction_date
-ORDER-100,2025-06-15
-ORDER-100,2025-06-15
-ORDER-200,2024-01-10
-ORDER-300,2026-02-20
-ORDER-300,2026-02-20
+order_number,receipt_id,receipt_type,transaction_date,warehouse_info,item_sku,item_name,quantity,unit_price,line_total,instant_savings,subtotal,tax_total,final_total
+ORDER-100,REC-100,warehouse,2025-06-15,TEST WAREHOUSE,SKU-001,MILK,1,4.99,4.99,0,7.98,0.66,8.64
+ORDER-100,REC-100,warehouse,2025-06-15,TEST WAREHOUSE,SKU-002,BREAD,1,2.99,2.99,0,7.98,0.66,8.64
+ORDER-200,REC-200,online,2024-01-10,ONLINE,SKU-003,RICE,2,6.00,12.00,0,12.00,0,12.00
+ORDER-300,REC-300,warehouse,2026-02-20,TEST WAREHOUSE,SKU-004,COFFEE,1,12.00,10.00,2.00,15.00,1.24,16.24
+ORDER-300,REC-300,warehouse,2026-02-20,TEST WAREHOUSE,SKU-005,BANANAS,2.5,2.00,5.00,0,15.00,1.24,16.24

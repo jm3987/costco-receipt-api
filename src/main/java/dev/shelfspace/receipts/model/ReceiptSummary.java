@@ -1,4 +1,4 @@
-package dev.shelfspace.receipts;
+package dev.shelfspace.receipts.model;
 
 import java.time.LocalDate;
 

@@ -1,6 +1,6 @@
-package dev.shelfspace.receipts;
+package dev.shelfspace.receipts.service;
 
-import io.quarkus.logging.Log;
+import dev.shelfspace.receipts.model.ReceiptSummary;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -15,10 +15,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-import java.io.IOException;
-import java.io.Reader;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 
