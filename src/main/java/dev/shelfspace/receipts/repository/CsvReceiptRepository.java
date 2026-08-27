@@ -17,9 +17,7 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 
 /**
@@ -34,15 +32,19 @@ public class CsvReceiptRepository implements ReceiptRepository {
     private final Path csvPath;
 
     @Inject
-    public CsvReceiptRepository(
-            @ConfigProperty(name = "receipts.csv.path") String csvPath
-    ) {
+    public CsvReceiptRepository(@ConfigProperty(name = "receipts.csv.path") String csvPath) {
         this.csvPath = Path.of(csvPath);
     }
 
+
     @Override
-    public Optional<ReceiptDetail> findByOrderNumber(String orderNumber) {
-        List<ReceiptItem> items = new ArrayList<>();
+    public List<ReceiptDetail> findAll(){
+        /**
+         * LinkedHashMap preserves the order found in the export. Stable ordering
+         * makes the API results predictable and simplifies comparisons with source data.
+         */
+        Map<String, ReceiptAccumulator> receiptsByOrderNumber =
+                new LinkedHashMap<>();
 
         try (
                 Reader reader = Files.newBufferedReader(csvPath);
@@ -51,37 +53,52 @@ public class CsvReceiptRepository implements ReceiptRepository {
                         .setSkipHeaderRecord(true)
                         .get()
                         .parse(reader)
-        ) {
-            CSVRecord receiptRecord = null;
-            for (CSVRecord record : parser) {
-                if (!orderNumber.equals(record.get("order_number"))) {
-                    continue;
-                }
+        ){
+            for (CSVRecord record : parser){
+                String orderNumber = record.get("order_number");
 
-                /*
-                receipt-level values repeat on every item row. Preserver the
-                first matching row as the authoritative source for those values
-                while collectin every matching item.
-                */
-                if (receiptRecord == null) {
-                    receiptRecord = record;
-                }
+                /**
+                 * The first row creates the receipt accumulator. Later rows with the
+                 * same order number reuse it and contribute additonal items
+                 */
+                ReceiptAccumulator receipt = receiptsByOrderNumber.computeIfAbsent(orderNumber,
+                        ignored -> new ReceiptAccumulator(record)
+                );
+                receipt.items().add(createItem(record));
 
-                items.add(createItem(record));
             }
 
-            if (receiptRecord == null) {
-                return Optional.empty();
-            }
+            return receiptsByOrderNumber.values()
+                    .stream()
+                    .map(receipt -> createReceipt(
+                            receipt.receiptRecord(),
+                            receipt.items()
+                    ))
+                    .toList();
 
-            return Optional.of(createReceipt(receiptRecord, items));
 
-        } catch (IOException exception) {
+        } catch (IOException exception){
             throw new UncheckedIOException(
                     "Unable to read receipt CSV: " + csvPath,
                     exception
             );
         }
+    }
+
+    @Override
+    public Optional<ReceiptDetail> findByOrderNumber(String orderNumber) {
+        /**
+         * The current export is small enough to parse as a complete collection.
+         * Reusing findAll() keeps receipt grouping in one authoritative code path.
+         * A future database implementation can provide an indexed lookup without
+         * changing this repository contract.
+         */
+        return findAll()
+                .stream()
+                .filter(receipt ->
+                        orderNumber.equals(receipt.orderNumber())
+                )
+                .findFirst();
     }
 
     private ReceiptItem createItem(CSVRecord record) {
@@ -132,6 +149,15 @@ public class CsvReceiptRepository implements ReceiptRepository {
                 List.copyOf(items)
         );
 
+    }
+
+    private record ReceiptAccumulator(
+            CSVRecord receiptRecord,
+            List<ReceiptItem> items
+    ){
+        private ReceiptAccumulator(CSVRecord receiptRecord){
+            this(receiptRecord, new ArrayList<>());
+        }
     }
 
 }

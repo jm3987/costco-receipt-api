@@ -13,6 +13,12 @@ import java.util.Optional;
  * without changing the service or resource layers.
  */
 public interface ReceiptRepository {
+    /**
+     * Returns every recipt available from the configured data source
+     *
+     * @return receipts in their source order
+     */
+    List<ReceiptDetail> findAll();
 
     /**
      * Finds a receipt using the order number shared by warehouse,

@@ -1,6 +1,8 @@
 package dev.shelfspace.receipts.service;
 
+import dev.shelfspace.receipts.model.ReceiptDetail;
 import dev.shelfspace.receipts.model.ReceiptSummary;
+import dev.shelfspace.receipts.repository.ReceiptRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -17,77 +19,50 @@ import org.apache.commons.csv.CSVRecord;
 
 import java.io.UncheckedIOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+
+/**
+ * Calculates aggregate information about the available receipt collection.
+ *
+ * The service works with the receipt models and remains independent of whether
+ * the underlying data comes from a CSV file or a database
+ */
 @ApplicationScoped
 public class ReceiptSummaryService {
 
-    private final Path csvPath;
+    private final ReceiptRepository receiptRepository;
 
     @Inject
-    public ReceiptSummaryService(
-            @ConfigProperty(name = "receipts.csv.path") String csvPath){
-        this.csvPath = Path.of(csvPath);
+    public ReceiptSummaryService(ReceiptRepository receiptRepository) {
+        this.receiptRepository = receiptRepository;
     }
-    public ReceiptSummary getSummary(
-    ) {
-        int rowCount = 0;
-        Set<String> orderNumbers = new HashSet<>();
-        LocalDate firstPurchaseDate = null;
-        LocalDate lastPurchaseDate = null;
 
-        try(
-                Reader reader = Files.newBufferedReader(csvPath);
-                CSVParser parser = CSVFormat.DEFAULT.builder()
-                        .setHeader()
-                        .setSkipHeaderRecord(true)
-                        .get()
-                        .parse(reader)
+    public ReceiptSummary getSummary() {
+        List<ReceiptDetail> receipts = receiptRepository.findAll();
 
-                ) {
-            //System.out.println(parser.getHeaderNames());
-            for (CSVRecord record : parser) {
-                rowCount++;
-                orderNumbers.add(record.get("order_number"));
+        /**
+         * Each source CSV row represents one receipt item. Summing the grouped
+         * item counts therefor preserves the original definition of rowCount.
+         */
+        int rowCount = receipts.stream()
+                .mapToInt(receipt -> receipt.items().size())
+                .sum();
 
-                LocalDate purchaseDate = LocalDate.parse(
-                        record.get("transaction_date")
-                );
+        LocalDate firstPurchaseDate = receipts.stream()
+                .map(ReceiptDetail::transactionDate)
+                .min(LocalDate::compareTo)
+                .orElse(null);
 
-                if (firstPurchaseDate == null ||
-                        purchaseDate.isBefore(firstPurchaseDate)){
-                    firstPurchaseDate = purchaseDate;
-                }
-                if (lastPurchaseDate == null ||
-                    purchaseDate.isAfter(lastPurchaseDate)){
-                    lastPurchaseDate = purchaseDate;
-                }
-
-
-//                if (rowCount <= 3){
-//                    System.out.println(record.toMap());
-//                }
-
-//                if (rowCount <= 3) {
-//                    Log.infof(
-//                            "Row %d: order=%s, date=%s, item=%s",
-//                            rowCount,
-//                            record.get("order_number"),
-//                            record.get("transaction_date"),
-//                            record.get("item_name")
-//                    );
-//                }
-            }
-        } catch (IOException exception) {
-            throw new UncheckedIOException(
-                    "Unable to read receipt CSV: " + csvPath,
-                    exception
-            );
-        }
+        LocalDate lastPurchaseDate = receipts.stream()
+                .map(ReceiptDetail::transactionDate)
+                .max(LocalDate::compareTo)
+                .orElse(null);
 
         return new ReceiptSummary(
                 rowCount,
-                orderNumbers.size(),
+                receipts.size(),
                 firstPurchaseDate,
                 lastPurchaseDate
         );
