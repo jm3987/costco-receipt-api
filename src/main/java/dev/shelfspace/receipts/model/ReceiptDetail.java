@@ -11,7 +11,12 @@ public record ReceiptDetail(
         LocalDate transactionDate,
         String warehouseInfo,
         BigDecimal subtotal,
+        BigDecimal discountAmount,
+        BigDecimal shopCardApplied,
+        BigDecimal couponApplied,
         BigDecimal taxTotal,
+        BigDecimal shippingHandling,
+        BigDecimal deliveryFees,
         BigDecimal finalTotal,
         List<ReceiptItem> items
 ) {

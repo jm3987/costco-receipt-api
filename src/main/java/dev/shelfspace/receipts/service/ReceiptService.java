@@ -57,10 +57,19 @@ public class ReceiptService {
                 items.add(new ReceiptItem(
                         record.get("item_sku"),
                         record.get("item_name"),
+                        record.get("item_actual_name"),
+                        record.get("item_description_2"),
+                        record.get("item_weight"),
+                        record.get("full_item_image"),
                         new BigDecimal(record.get("quantity")),
                         new BigDecimal(record.get("unit_price")),
                         new BigDecimal(record.get("line_total")),
-                        new BigDecimal(record.get("instant_savings"))
+                        record.get("department_id"),
+                        "Y".equalsIgnoreCase(record.get("tax_flag")),
+                        parseNullableBoolean(record.get("isFSAEligible")),
+                        new BigDecimal(record.get("instant_savings")),
+                        new BigDecimal(record.get("surcharges")),
+                        record.get("surcharge_reason")
                 ));
             }
 
@@ -75,7 +84,12 @@ public class ReceiptService {
                     LocalDate.parse(receiptRecord.get("transaction_date")),
                     receiptRecord.get("warehouse_info"),
                     new BigDecimal(receiptRecord.get("subtotal")),
+                    new BigDecimal(receiptRecord.get("discount_amount")),
+                    new BigDecimal(receiptRecord.get("shop_card_applied")),
+                    new BigDecimal(receiptRecord.get("coupon_applied")),
                     new BigDecimal(receiptRecord.get("tax_total")),
+                    new BigDecimal(receiptRecord.get("shipping_handling")),
+                    new BigDecimal(receiptRecord.get("delivery_fees")),
                     new BigDecimal(receiptRecord.get("final_total")),
                     List.copyOf(items)
             ));
@@ -85,5 +99,12 @@ public class ReceiptService {
                     exception
             );
         }
+    }
+
+    private Boolean parseNullableBoolean(String value) {
+        if (value == null || value.isBlank()){
+            return null;
+        }
+        return Boolean.valueOf(value);
     }
 }

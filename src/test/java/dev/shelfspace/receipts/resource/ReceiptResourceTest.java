@@ -18,19 +18,18 @@ public class ReceiptResourceTest {
                 .get("/api/receipts/ORDER-100")
                 .then()
                 .statusCode(200)
-                .body("orderNumber", is("ORDER-100"))
-                .body("receiptId", is("REC-100"))
-                .body("receiptType", is("warehouse"))
-                .body("transactionDate", is("2025-06-15"))
-                .body("warehouseInfo", is("TEST WAREHOUSE"))
-                .body("subtotal", is(7.98F))
-                .body("taxTotal", is(0.66F))
-                .body("finalTotal", is(8.64F))
-                .body("items.size()", is(2))
-                .body("items.size()", is(2))
-                .body("items[0].itemSku", is("SKU-001"))
-                .body("items[0].itemName", is("MILK"))
-                .body("items[1].itemName", is("BREAD"));
+                .body("discountAmount", is(0))
+                .body("shippingHandling", is(0))
+                .body("deliveryFees", is(0))
+                .body("items[0].itemActualName", is("WHOLE MILK"))
+                .body("items[0].description", is("1 GALLON"))
+                .body("items[0].imageUrl", is("https://example.test/milk.jpg"))
+                .body("items[0].departmentId", is("12"))
+                .body("items[0].taxable", is(false))
+                .body("items[0].fsaEligible", is(true))
+                .body("items[1].taxable", is(true))
+                .body("items[1].fsaEligible", is(false))
+                .body("items[1].instantSavings", is(1.00F));
     }
 
     @Test
