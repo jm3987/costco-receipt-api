@@ -9,6 +9,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -60,11 +61,20 @@ public class ReceiptSummaryService {
                 .max(LocalDate::compareTo)
                 .orElse(null);
 
+        /**
+         * ReceiptRepository has already grouped repeated CSV item rows into distinct
+         * receipts. Summing finalTotal here therefor counts each receipt exactly once.
+         */
+        BigDecimal totalSpending = receipts.stream()
+                .map(ReceiptDetail::finalTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         return new ReceiptSummary(
                 rowCount,
                 receipts.size(),
                 firstPurchaseDate,
-                lastPurchaseDate
+                lastPurchaseDate,
+                totalSpending
         );
     }
 }

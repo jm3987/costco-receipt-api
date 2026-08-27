@@ -20,6 +20,7 @@ public class ReceiptSummaryResourceTest {
                 .body("rowCount", is(5))
                 .body("receiptCount", is(3))
                 .body("firstPurchaseDate", is("2024-01-10"))
-                .body("lastPurchaseDate", is("2026-02-20"));
+                .body("lastPurchaseDate", is("2026-02-20"))
+                .body("totalSpending", is(39.88F));
     }
 }
