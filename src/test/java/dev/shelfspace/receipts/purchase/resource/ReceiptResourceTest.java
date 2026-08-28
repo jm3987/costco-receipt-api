@@ -1,4 +1,4 @@
-package dev.shelfspace.receipts.resource;
+package dev.shelfspace.receipts.purchase.resource;
 
 
 import io.quarkus.test.junit.QuarkusTest;

@@ -1,4 +1,4 @@
-package dev.shelfspace.receipts.resource.analytics.resource;
+package dev.shelfspace.receipts.analytics.resource;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;

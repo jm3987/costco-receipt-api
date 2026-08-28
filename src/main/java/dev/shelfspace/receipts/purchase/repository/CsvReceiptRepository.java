@@ -1,8 +1,8 @@
-package dev.shelfspace.receipts.repository;
+package dev.shelfspace.receipts.purchase.repository;
 
 
-import dev.shelfspace.receipts.model.ReceiptDetail;
-import dev.shelfspace.receipts.model.ReceiptItem;
+import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
+import dev.shelfspace.receipts.purchase.model.ReceiptItem;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.commons.csv.CSVFormat;

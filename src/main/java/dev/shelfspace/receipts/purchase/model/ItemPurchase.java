@@ -1,4 +1,4 @@
-package dev.shelfspace.receipts.model;
+package dev.shelfspace.receipts.purchase.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

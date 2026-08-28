@@ -1,10 +1,10 @@
-package dev.shelfspace.receipts.service;
+package dev.shelfspace.receipts.purchase.service;
 
 
-import dev.shelfspace.receipts.model.ItemPurchase;
-import dev.shelfspace.receipts.model.ReceiptDetail;
-import dev.shelfspace.receipts.model.ReceiptItem;
-import dev.shelfspace.receipts.repository.ReceiptRepository;
+import dev.shelfspace.receipts.purchase.model.ItemPurchase;
+import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
+import dev.shelfspace.receipts.purchase.model.ReceiptItem;
+import dev.shelfspace.receipts.purchase.repository.ReceiptRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 

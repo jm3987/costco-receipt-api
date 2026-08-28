@@ -1,6 +1,6 @@
-package dev.shelfspace.receipts.repository;
+package dev.shelfspace.receipts.purchase.repository;
 
-import dev.shelfspace.receipts.model.ReceiptDetail;
+import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
 
 import java.util.List;
 import java.util.Optional;
