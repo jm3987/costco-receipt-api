@@ -1,7 +1,7 @@
-package dev.shelfspace.receipts.item.service;
+package dev.shelfspace.receipts.service;
 
 
-import dev.shelfspace.receipts.item.model.ItemPurchase;
+import dev.shelfspace.receipts.model.ItemPurchase;
 import dev.shelfspace.receipts.model.ReceiptDetail;
 import dev.shelfspace.receipts.model.ReceiptItem;
 import dev.shelfspace.receipts.repository.ReceiptRepository;

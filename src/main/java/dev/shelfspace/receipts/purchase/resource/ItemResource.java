@@ -1,7 +1,7 @@
-package dev.shelfspace.receipts.item.resouce;
+package dev.shelfspace.receipts.purchase.resource;
 
-import dev.shelfspace.receipts.item.model.ItemPurchase;
-import dev.shelfspace.receipts.item.service.ItemService;
+import dev.shelfspace.receipts.purchase.model.ItemPurchase;
+import dev.shelfspace.receipts.purchase.service.ItemService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;

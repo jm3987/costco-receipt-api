@@ -1,24 +1,10 @@
 package dev.shelfspace.receipts.service;
 
 import dev.shelfspace.receipts.model.ReceiptDetail;
-import dev.shelfspace.receipts.model.ReceiptItem;
 import dev.shelfspace.receipts.repository.ReceiptRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.UncheckedIOException;
-import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 
