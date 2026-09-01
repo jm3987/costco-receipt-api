@@ -168,4 +168,83 @@ public class ReceiptResourceTest {
                 .then()
                 .statusCode(400);
     }
+
+    @Test
+    void shouldFilterReceiptsByPurchaseType() {
+        given()
+                .queryParam("type", "warehouse")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("receipts", hasSize(1))
+                .body("receipts[0].orderNumber", equalTo("ORDER-100"))
+                .body("receipts[0].receiptType", equalTo("warehouse"))
+                .body("totalReceipts", equalTo(1))
+                .body("totalPages", equalTo(1));
+    }
+
+    @Test
+    void shouldMatchPurchaseTypeCaseInsensitively() {
+        given()
+                .queryParam("type", "ONLINE")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("receipts", hasSize(1))
+                .body("receipts[0].orderNumber", equalTo("ORDER-300"))
+                .body("receipts[0].receiptType", equalTo("online"))
+                .body("totalReceipts", equalTo(1));
+    }
+
+    @Test
+    void shouldFilterGasStationReceipts() {
+        given()
+                .queryParam("type", "gas_station")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("receipts", hasSize(1))
+                .body("receipts[0].orderNumber", equalTo("ORDER-200"))
+                .body("receipts[0].receiptType", equalTo("gas_station"))
+                .body("totalReceipts", equalTo(1));
+    }
+
+    @Test
+    void shouldCombinePurchaseTypeAndDateFilters() {
+        given()
+                .queryParam("type", "warehouse")
+                .queryParam("from", "2026-01-01")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                // ORDER-300 satisfies the date filter but is not a warehouse
+                // receipt, so the combined search must remain empty.
+                .body("receipts", empty())
+                .body("totalReceipts", equalTo(0))
+                .body("totalPages", equalTo(0));
+    }
+
+    @Test
+    void shouldRejectUnsupportedPurchaseType() {
+        given()
+                .queryParam("type", "delivery")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(400)
+                .body(
+                        "code",
+                        equalTo("INVALID_PURCHASE_TYPE")
+                )
+                .body(
+                        "message",
+                        containsString(
+                                "Supported values: warehouse, gas_station, online"
+                        )
+                );
+    }
 }

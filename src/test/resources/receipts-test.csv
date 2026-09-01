@@ -1,6 +1,6 @@
 order_number,receipt_id,receipt_type,transaction_date,warehouse_info,item_sku,item_name,item_actual_name,item_description_2,item_weight,full_item_image,quantity,unit_price,line_total,department_id,tax_flag,isFSAEligible,subtotal,instant_savings,discount_amount,shop_card_applied,coupon_applied,tax_total,shipping_handling,delivery_fees,surcharges,surcharge_reason,final_total
 ORDER-100,REC-100,warehouse,2025-06-15,TEST WAREHOUSE,SKU-001,MILK,WHOLE MILK,1 GALLON,,https://example.test/milk.jpg,1,4.99,4.99,12,N,true,7.98,0,0,0,0,0.66,0,0,0,,8.64
 ORDER-100,REC-100,warehouse,2025-06-15,TEST WAREHOUSE,SKU-002,BREAD,WHOLE WHEAT BREAD,TWO LOAVES,,,1,3.99,2.99,12,Y,false,7.98,1.00,0,0,0,0.66,0,0,0,,8.64
-ORDER-200,REC-200,online,2024-01-10,ONLINE,SKU-003,RICE,JASMINE RICE,10 LB BAG,10 lb,,2,6.00,12.00,13,N,,12.00,0,0,0,0,0,0,0,3.00,DELIVERY SURCHARGE,15.00
-ORDER-300,REC-300,warehouse,2026-02-20,TEST WAREHOUSE,SKU-004,COFFEE,GROUND COFFEE,3 LB,3 lb,,1,12.00,10.00,14,Y,false,15.00,2.00,0,0,0,1.24,0,0,0,,16.24
-ORDER-300,REC-300,warehouse,2026-02-20,TEST WAREHOUSE,SKU-005,BANANAS,BANANAS,,2.5 lb,,2.5,2.00,5.00,15,N,true,15.00,0,0,0,0,1.24,0,0,0,,16.24
+ORDER-200,REC-200,gas_station,2024-01-10,TEST WAREHOUSE,SKU-003,RICE,JASMINE RICE,10 LB BAG,10 lb,,2,6.00,12.00,13,N,,12.00,0,0,0,0,0,0,0,3.00,DELIVERY SURCHARGE,15.00
+ORDER-300,REC-300,online,2026-02-20,TEST ONLINE,SKU-004,COFFEE,GROUND COFFEE,3 LB,3 lb,,1,12.00,10.00,14,Y,false,15.00,2.00,0,0,0,1.24,0,0,0,,16.24
+ORDER-300,REC-300,warehouse,2026-02-20,TEST ONLINE,SKU-005,BANANAS,BANANAS,,2.5 lb,,2.5,2.00,5.00,15,N,true,15.00,0,0,0,0,1.24,0,0,0,,16.24

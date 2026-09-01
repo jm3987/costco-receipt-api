@@ -1,9 +1,6 @@
 package dev.shelfspace.receipts.purchase.service;
 
-import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
-import dev.shelfspace.receipts.purchase.model.ReceiptOverview;
-import dev.shelfspace.receipts.purchase.model.ReceiptPage;
-import dev.shelfspace.receipts.purchase.model.ReceiptQuery;
+import dev.shelfspace.receipts.purchase.model.*;
 import dev.shelfspace.receipts.purchase.repository.ReceiptRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -34,59 +31,63 @@ public class ReceiptService {
         return receiptRepository.findByOrderNumber(orderNumber);
     }
 
-    /**
-     * Returns one page of compact receipt overviews in newest-first order.
-     * This method currently assumes that page is non-negative and size
-     * is positive. Complete pagination validation will be added in future
-     * @param page
-     * @param size
-     * @return ReceiptPage
-     */
-    public ReceiptPage listReceipts(int page, int size){
-        List<ReceiptOverview> receiptOverviews =
-                receiptRepository.findAll()
-                        .stream()
-                        //Newsest-first is the default browsing order.
-                        //Order number provides deterministic ordering for same-date receipts.
-                        .sorted(
-                                Comparator.comparing(ReceiptDetail::transactionDate)
-                                        .reversed()
-                                        .thenComparing(ReceiptDetail::orderNumber)
-                        )
-                        .map(this::toReceiptOverview)
-                        .toList();
+//    /**
+//     * Returns one page of compact receipt overviews in newest-first order.
+//     * This method currently assumes that page is non-negative and size
+//     * is positive. Complete pagination validation will be added in future
+//     * @param page
+//     * @param size
+//     * @return ReceiptPage
+//     */
+//    public ReceiptPage listReceipts(int page, int size){
+//        List<ReceiptOverview> receiptOverviews =
+//                receiptRepository.findAll()
+//                        .stream()
+//                        //Newsest-first is the default browsing order.
+//                        //Order number provides deterministic ordering for same-date receipts.
+//                        .sorted(
+//                                Comparator.comparing(ReceiptDetail::transactionDate)
+//                                        .reversed()
+//                                        .thenComparing(ReceiptDetail::orderNumber)
+//                        )
+//                        .map(this::toReceiptOverview)
+//                        .toList();
+//
+//        long totalReceipts = receiptOverviews.size();
+//        int totalPages = (int) Math.ceil((double) totalReceipts / size );
+//
+//        //Page numbers are zero-based: page 0 skips nothing, while page 1 skips the first complete page.
+//        long offset = (long) page * size;
+//
+//        List<ReceiptOverview> pageReceipts =
+//                receiptOverviews.stream()
+//                        .skip(offset)
+//                        .limit(size)
+//                        .toList();
+//
+//        return new ReceiptPage(
+//                pageReceipts,
+//                page,
+//                size,
+//                totalReceipts,
+//                totalPages
+//        );
+//    }
 
-        long totalReceipts = receiptOverviews.size();
-        int totalPages = (int) Math.ceil((double) totalReceipts / size );
-
-        //Page numbers are zero-based: page 0 skips nothing, while page 1 skips the first complete page.
-        long offset = (long) page * size;
-
-        List<ReceiptOverview> pageReceipts =
-                receiptOverviews.stream()
-                        .skip(offset)
-                        .limit(size)
-                        .toList();
-
-        return new ReceiptPage(
-                pageReceipts,
-                page,
-                size,
-                totalReceipts,
-                totalPages
-        );
-    }
-
-    public ReceiptPage listReceipts(ReceiptQuery query){
+    public ReceiptPage listReceipts(ReceiptQuery query) {
         validateDateRange(query.from(), query.to());
 
         List<ReceiptOverview> receiptOverviews = receiptRepository.findAll().stream()
-                //Filtering must happen before pagination so page totals describe
-                // the complete filtered result rather than only the current page
+                // All requested filters must be applied before sorting and
+                // pagination so page metadata describes the filtered result.
                 .filter(receipt -> isWithinDateRange(
                         receipt.transactionDate(),
                         query.from(),
                         query.to()
+                ))
+                .filter(receipt -> matchesPurchaseType(
+                        receipt.receiptType(),
+                        query.type()
                 ))
                 .sorted(
                         Comparator.comparing(ReceiptDetail::transactionDate)
@@ -97,7 +98,9 @@ public class ReceiptService {
                 .toList();
 
         long totalReceipts = receiptOverviews.size();
-        int totalPages = (int) Math.ceil((double) totalReceipts / query.size());
+        int totalPages = (int) Math.ceil(
+                (double) totalReceipts / query.size()
+        );
         long offset = (long) query.page() * query.size();
 
         List<ReceiptOverview> pageReceipts = receiptOverviews.stream()
@@ -112,7 +115,6 @@ public class ReceiptService {
                 totalReceipts,
                 totalPages
         );
-
     }
 
     private ReceiptOverview toReceiptOverview(ReceiptDetail receipt) {
@@ -126,7 +128,7 @@ public class ReceiptService {
     }
 
     /**
-     * Determines whether a recipt date falls within the request inclusive range.
+     * Determines whether a receipt date falls within the request inclusive range.
      */
     private boolean isWithinDateRange(LocalDate transactionDate, LocalDate from, LocalDate to) {
         boolean isOnOrAfterFrom = from == null || !transactionDate.isBefore(from);
@@ -141,5 +143,23 @@ public class ReceiptService {
         if(from != null && to != null && from.isAfter(to)) {
             throw new IllegalArgumentException("Query parameter 'from' must not be after 'to'.");
         }
+    }
+
+    /**
+     * Determines whether a receipt belongs to the requested purchase type.
+     *
+     * <p>A null requested type represents an unrestricted search. Receipt values
+     * are compared case-insensitively because imported text should not make the
+     * public filter unexpectedly case-sensitive.</p>
+     */
+    private boolean matchesPurchaseType(
+            String receiptType,
+            PurchaseType requestedType
+    ) {
+        if (requestedType == null) {
+            return true;
+        }
+
+        return requestedType.value().equalsIgnoreCase(receiptType);
     }
 }

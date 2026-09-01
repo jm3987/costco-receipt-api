@@ -7,12 +7,13 @@ import java.time.LocalDate;
 /**
  * Defines the filtering and pagination options used when browsing receipts.
  *
- * <p>A null date represents an open boundary. For example, a null {@code from}
- * value includes all receipts up to the optional {@code to} date.</p>
+ * <p>Null filter values represent unrestricted criteria. For example, a null
+ * purchase type includes receipts from every supported sales channel.</p>
  */
 public record ReceiptQuery(
         LocalDate from,
         LocalDate to,
+        PurchaseType type,
         int page,
         int size
 ) {

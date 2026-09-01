@@ -1,6 +1,8 @@
 package dev.shelfspace.receipts.purchase.resource;
 
 
+import dev.shelfspace.receipts.common.ApiError;
+import dev.shelfspace.receipts.purchase.model.PurchaseType;
 import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
 import dev.shelfspace.receipts.purchase.model.ReceiptPage;
 import dev.shelfspace.receipts.purchase.model.ReceiptQuery;
@@ -8,6 +10,7 @@ import dev.shelfspace.receipts.purchase.service.ReceiptService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import java.text.ParseException;
 import java.time.LocalDate;
@@ -46,12 +49,14 @@ public class ReceiptResource {
     public ReceiptPage listReceipts(
             @QueryParam("from") String from,
             @QueryParam("to") String to,
+            @QueryParam("type") String type,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") int size
     ) {
         ReceiptQuery query = new ReceiptQuery(
                 parseDate(from, "from"),
                 parseDate(to, "to"),
+                parsePurchaseType(type),
                 page,
                 size
         );
@@ -59,8 +64,8 @@ public class ReceiptResource {
         try {
             return receiptService.listReceipts(query);
         } catch (IllegalArgumentException exception) {
-            // Translate invalid business input into the HTTP contract exposed
-            // by this resource. The service remains independent of Jakarta REST.
+            // The service owns query validation while the resource translates
+            // invalid business input into the appropriate HTTP status.
             throw new BadRequestException(exception.getMessage(), exception);
         }
     }
@@ -89,6 +94,33 @@ public class ReceiptResource {
         }
     }
 
+    /**
+     * Converts an optional query parameter into a supported purchase type.
+     *
+     * @param value raw value supplied through the type query parameter
+     * @return the matching purchase type, or null when no filter was supplied
+     */
+    private PurchaseType parsePurchaseType(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        try {
+            return PurchaseType.fromValue(value);
+        } catch (IllegalArgumentException exception) {
+            ApiError error = new ApiError(
+                    "INVALID_PURCHASE_TYPE",
+                    exception.getMessage()
+            );
+
+            Response response = Response.status(Response.Status.BAD_REQUEST)
+                    .type(MediaType.APPLICATION_JSON)
+                    .entity(error)
+                    .build();
+
+            throw new BadRequestException(response, exception);
+        }
+    }
 
 
 
