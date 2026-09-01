@@ -340,4 +340,112 @@ public class ReceiptResourceTest {
                 .body("totalReceipts", equalTo(2))
                 .body("totalPages", equalTo(2));
     }
+
+    @Test
+    void shouldRejectNegativePageNumber() {
+        given()
+                .queryParam("page", -1)
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(400)
+                .body(
+                        "code",
+                        equalTo("INVALID_RECEIPT_QUERY")
+                )
+                .body(
+                        "message",
+                        containsString(
+                                "'page' must be zero or greater"
+                        )
+                );
+    }
+
+    @Test
+    void shouldRejectPageSizeBelowMinimum() {
+        given()
+                .queryParam("size", 0)
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(400)
+                .body(
+                        "code",
+                        equalTo("INVALID_RECEIPT_QUERY")
+                )
+                .body(
+                        "message",
+                        containsString(
+                                "'size' must be at least 1"
+                        )
+                );
+    }
+
+    @Test
+    void shouldRejectPageSizeAboveMaximum() {
+        given()
+                .queryParam("size", 101)
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(400)
+                .body(
+                        "code",
+                        equalTo("INVALID_RECEIPT_QUERY")
+                )
+                .body(
+                        "message",
+                        containsString(
+                                "'size' must not exceed 100"
+                        )
+                );
+    }
+
+    @Test
+    void shouldAcceptMaximumPageSize() {
+        given()
+                .queryParam("page", 0)
+                .queryParam("size", 100)
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("page", equalTo(0))
+                .body("size", equalTo(100))
+                .body("totalReceipts", equalTo(3))
+                .body("totalPages", equalTo(1));
+    }
+
+    @Test
+    void shouldReturnEmptyPageWhenPageIsBeyondAvailableResults() {
+        given()
+                .queryParam("page", 2)
+                .queryParam("size", 2)
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("receipts", empty())
+                .body("page", equalTo(2))
+                .body("size", equalTo(2))
+                .body("totalReceipts", equalTo(3))
+                .body("totalPages", equalTo(2));
+    }
+
+    @Test
+    void shouldCalculatePaginationMetadataAfterFiltering() {
+        given()
+                .queryParam("from", "2025-01-01")
+                .queryParam("page", 0)
+                .queryParam("size", 1)
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("receipts", hasSize(1))
+                .body("page", equalTo(0))
+                .body("size", equalTo(1))
+                .body("totalReceipts", equalTo(2))
+                .body("totalPages", equalTo(2));
+    }
 }

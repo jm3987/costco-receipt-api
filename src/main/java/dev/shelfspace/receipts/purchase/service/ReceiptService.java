@@ -31,78 +31,37 @@ public class ReceiptService {
         return receiptRepository.findByOrderNumber(orderNumber);
     }
 
-//    /**
-//     * Returns one page of compact receipt overviews in newest-first order.
-//     * This method currently assumes that page is non-negative and size
-//     * is positive. Complete pagination validation will be added in future
-//     * @param page
-//     * @param size
-//     * @return ReceiptPage
-//     */
-//    public ReceiptPage listReceipts(int page, int size){
-//        List<ReceiptOverview> receiptOverviews =
-//                receiptRepository.findAll()
-//                        .stream()
-//                        //Newsest-first is the default browsing order.
-//                        //Order number provides deterministic ordering for same-date receipts.
-//                        .sorted(
-//                                Comparator.comparing(ReceiptDetail::transactionDate)
-//                                        .reversed()
-//                                        .thenComparing(ReceiptDetail::orderNumber)
-//                        )
-//                        .map(this::toReceiptOverview)
-//                        .toList();
-//
-//        long totalReceipts = receiptOverviews.size();
-//        int totalPages = (int) Math.ceil((double) totalReceipts / size );
-//
-//        //Page numbers are zero-based: page 0 skips nothing, while page 1 skips the first complete page.
-//        long offset = (long) page * size;
-//
-//        List<ReceiptOverview> pageReceipts =
-//                receiptOverviews.stream()
-//                        .skip(offset)
-//                        .limit(size)
-//                        .toList();
-//
-//        return new ReceiptPage(
-//                pageReceipts,
-//                page,
-//                size,
-//                totalReceipts,
-//                totalPages
-//        );
-//    }
-
     public ReceiptPage listReceipts(ReceiptQuery query) {
+        validatePagination(query.page(), query.size());
         validateDateRange(query.from(), query.to());
 
-        List<ReceiptOverview> receiptOverviews = receiptRepository.findAll().stream()
-                // All requested filters must be applied before sorting and
-                // pagination so page metadata describes the filtered result.
-                .filter(receipt -> isWithinDateRange(
-                        receipt.transactionDate(),
-                        query.from(),
-                        query.to()
-                ))
-                .filter(receipt -> matchesPurchaseType(
-                        receipt.receiptType(),
-                        query.type()
-                ))
-                .sorted(receiptComparator(query.sort()))
-                .map(this::toReceiptOverview)
-                .toList();
+        List<ReceiptOverview> receiptOverviews =
+                receiptRepository.findAll().stream()
+                    // Filters must run before sorting and pagination so the
+                    // page metadata represents the filtered result.
+                    .filter(receipt -> isWithinDateRange(
+                            receipt.transactionDate(),
+                            query.from(),
+                            query.to()
+                    ))
+                    .filter(receipt -> matchesPurchaseType(
+                            receipt.receiptType(),
+                            query.type()
+                    ))
+                    .sorted(receiptComparator(query.sort()))
+                    .map(this::toReceiptOverview)
+                    .toList();
 
         long totalReceipts = receiptOverviews.size();
-        int totalPages = (int) Math.ceil(
-                (double) totalReceipts / query.size()
-        );
+        int totalPages = (int) Math.ceil((double) totalReceipts / query.size());
+        //Perform the multiplication as a long so a large page number cannot overflow Java's smaller int range before skip() receives the offset.
         long offset = (long) query.page() * query.size();
 
-        List<ReceiptOverview> pageReceipts = receiptOverviews.stream()
-                .skip(offset)
-                .limit(query.size())
-                .toList();
+        List<ReceiptOverview> pageReceipts =
+                receiptOverviews.stream()
+                    .skip(offset)
+                    .limit(query.size())
+                    .toList();
 
         return new ReceiptPage(
                 pageReceipts,
@@ -173,5 +132,31 @@ public class ReceiptService {
         }
 
         return dateComparator.thenComparing(ReceiptDetail::orderNumber);
+    }
+
+    /**
+     * Validates the paging limits used when browsing receipts.
+     *
+     * <p>The maximum page size protects the application from requests that would
+     * otherwise return an unnecessarily large response.</p>
+     */
+    private void validatePagination(int page, int size) {
+        if (page < 0) {
+            throw new IllegalArgumentException(
+                    "Query parameter 'page' must be zero or greater."
+            );
+        }
+
+        if (size < 1) {
+            throw new IllegalArgumentException(
+                    "Query parameter 'size' must be at least 1."
+            );
+        }
+
+        if (size > 100) {
+            throw new IllegalArgumentException(
+                    "Query parameter 'size' must not exceed 100."
+            );
+        }
     }
 }
