@@ -247,4 +247,97 @@ public class ReceiptResourceTest {
                         )
                 );
     }
+
+    @Test
+    void shouldSortReceiptsByDateAscending(){
+        given()
+                .queryParam("sort", "date,asc")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("receipts", hasSize(3))
+                .body("receipts[0].orderNumber", equalTo("ORDER-200"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-100"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-300"));
+    }
+
+    @Test
+    void shouldSortReceiptsByDateDescending(){
+        given()
+                .queryParam("sort", "date,desc")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("receipts", hasSize(3))
+                .body("receipts[0].orderNumber", equalTo("ORDER-300"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-100"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-200"));
+    }
+
+    @Test
+    void shouldMatchReceiptSortCaseInsensitively() {
+        given()
+                .queryParam("sort", "DATE,ASC")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                .body("receipts[0].orderNumber", equalTo("ORDER-200"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-300"));
+    }
+
+    @Test
+    void shouldRejectUnsupportedReceiptSortField() {
+        given()
+                .queryParam("sort", "total,asc")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(400)
+                .body("code", equalTo("INVALID_RECEIPT_SORT"))
+                .body(
+                        "message",
+                        containsString("Supported values")
+                );
+    }
+
+    @Test
+    void shouldRejectUnsupportedReceiptSortDirection() {
+        given()
+                .queryParam("sort", "date,sideways")
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(400)
+                .body("code", equalTo("INVALID_RECEIPT_SORT"))
+                .body(
+                        "message",
+                        containsString("date,desc")
+                )
+                .body(
+                        "message",
+                        containsString("date,asc")
+                );
+    }
+
+    @Test
+    void shouldFilterBeforeSortingAndPagination() {
+        given()
+                .queryParam("from", "2025-01-01")
+                .queryParam("sort", "date,asc")
+                .queryParam("page", 0)
+                .queryParam("size", 1)
+                .when()
+                .get("/api/receipts")
+                .then()
+                .statusCode(200)
+                // ORDER-200 is excluded by the date filter. The two remaining
+                // receipts are sorted before the first page is selected.
+                .body("receipts", hasSize(1))
+                .body("receipts[0].orderNumber", equalTo("ORDER-100"))
+                .body("totalReceipts", equalTo(2))
+                .body("totalPages", equalTo(2));
+    }
 }

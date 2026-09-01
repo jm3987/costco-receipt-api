@@ -2,10 +2,7 @@ package dev.shelfspace.receipts.purchase.resource;
 
 
 import dev.shelfspace.receipts.common.ApiError;
-import dev.shelfspace.receipts.purchase.model.PurchaseType;
-import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
-import dev.shelfspace.receipts.purchase.model.ReceiptPage;
-import dev.shelfspace.receipts.purchase.model.ReceiptQuery;
+import dev.shelfspace.receipts.purchase.model.*;
 import dev.shelfspace.receipts.purchase.service.ReceiptService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -36,20 +33,14 @@ public class ReceiptResource {
                         "Receipt not found: " + orderNumber
                 ));
     }
-//
-//    @GET
-//    public ReceiptPage listReceipts(
-//            @QueryParam("page") @DefaultValue("0") int page,
-//            @QueryParam("size") @DefaultValue("20") int size
-//    ){
-//        return receiptService.listReceipts(page, size);
-//    }
+
 
     @GET
     public ReceiptPage listReceipts(
             @QueryParam("from") String from,
             @QueryParam("to") String to,
             @QueryParam("type") String type,
+            @QueryParam("sort") @DefaultValue("date,desc") String sort,
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") int size
     ) {
@@ -57,6 +48,7 @@ public class ReceiptResource {
                 parseDate(from, "from"),
                 parseDate(to, "to"),
                 parsePurchaseType(type),
+                parseReceiptSort(sort),
                 page,
                 size
         );
@@ -64,9 +56,11 @@ public class ReceiptResource {
         try {
             return receiptService.listReceipts(query);
         } catch (IllegalArgumentException exception) {
-            // The service owns query validation while the resource translates
-            // invalid business input into the appropriate HTTP status.
-            throw new BadRequestException(exception.getMessage(), exception);
+            throw badRequest(
+                    "INVALID_RECEIPT_QUERY",
+                    exception.getMessage(),
+                    exception
+            );
         }
     }
 
@@ -108,18 +102,50 @@ public class ReceiptResource {
         try {
             return PurchaseType.fromValue(value);
         } catch (IllegalArgumentException exception) {
-            ApiError error = new ApiError(
+            throw badRequest(
                     "INVALID_PURCHASE_TYPE",
-                    exception.getMessage()
+                    exception.getMessage(),
+                    exception
             );
-
-            Response response = Response.status(Response.Status.BAD_REQUEST)
-                    .type(MediaType.APPLICATION_JSON)
-                    .entity(error)
-                    .build();
-
-            throw new BadRequestException(response, exception);
         }
+    }
+
+    /**
+     * Converts the optional HTTP sort parameter into a supported receipt-ordering
+     * strategy.
+     */
+    private ReceiptSort parseReceiptSort(String value) {
+        if (value == null || value.isBlank()) {
+            return ReceiptSort.DATE_DESC;
+        }
+
+        try {
+            return ReceiptSort.fromValue(value);
+        } catch (IllegalArgumentException exception) {
+            throw badRequest(
+                    "INVALID_RECEIPT_SORT",
+                    exception.getMessage(),
+                    exception
+            );
+        }
+    }
+
+    /**
+     * Creates the standard JSON response used for invalid receipt-list requests.
+     */
+    private BadRequestException badRequest(
+            String code,
+            String message,
+            Throwable cause
+    ) {
+        ApiError error = new ApiError(code, message);
+
+        Response response = Response.status(Response.Status.BAD_REQUEST)
+                .type(MediaType.APPLICATION_JSON)
+                .entity(error)
+                .build();
+
+        return new BadRequestException(response, cause);
     }
 
 

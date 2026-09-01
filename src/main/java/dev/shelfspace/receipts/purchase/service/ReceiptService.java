@@ -89,11 +89,7 @@ public class ReceiptService {
                         receipt.receiptType(),
                         query.type()
                 ))
-                .sorted(
-                        Comparator.comparing(ReceiptDetail::transactionDate)
-                                .reversed()
-                                .thenComparing(ReceiptDetail::orderNumber)
-                )
+                .sorted(receiptComparator(query.sort()))
                 .map(this::toReceiptOverview)
                 .toList();
 
@@ -161,5 +157,21 @@ public class ReceiptService {
         }
 
         return requestedType.value().equalsIgnoreCase(receiptType);
+    }
+
+    /**
+     * Creates the requested date comparator with a deterministic secondary order.
+     *
+     * Order number remains ascending in both modes. This prevents receipts
+     * sharing the same date from moving unpredictably between pages.
+     */
+    private Comparator<ReceiptDetail> receiptComparator(ReceiptSort sort){
+        Comparator<ReceiptDetail> dateComparator = Comparator.comparing((ReceiptDetail::transactionDate));
+
+        if (sort == ReceiptSort.DATE_DESC) {
+            dateComparator = dateComparator.reversed();
+        }
+
+        return dateComparator.thenComparing(ReceiptDetail::orderNumber);
     }
 }
