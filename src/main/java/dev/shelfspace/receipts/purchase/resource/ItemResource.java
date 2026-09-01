@@ -34,4 +34,21 @@ public class ItemResource {
         }
         return itemService.findPurchaseHistory(query);
     }
+
+    @GET
+    @Path("/{sku}/purchases")
+    public List<ItemPurchase> getPurchasesBySku(
+            @PathParam("sku") String sku
+    ) {
+        List<ItemPurchase> purchases =
+                itemService.findPurchasesBySku(sku);
+
+        if (purchases.isEmpty()) {
+            throw new NotFoundException(
+                    "No purchase history was found for SKU '" + sku + "'."
+            );
+        }
+
+        return purchases;
+    }
 }

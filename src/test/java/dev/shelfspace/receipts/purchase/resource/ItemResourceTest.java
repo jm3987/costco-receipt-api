@@ -10,24 +10,35 @@ import static org.hamcrest.Matchers.is;
 public class ItemResourceTest {
 
     @Test
-    void findsPurchaseByItemNameIgnoringCase(){
+    void findsPurchasesByItemNameIgnoringCase() {
         given()
                 .queryParam("query", "milk")
                 .when()
                 .get("/api/items")
                 .then()
                 .statusCode(200)
-                .body("size()", is(1))
-                .body("[0].orderNumber", is("ORDER-100"))
-                .body("[0].orderNumber", is("ORDER-100"))
-                .body("[0].transactionDate", is("2025-06-15"))
+                .body("size()", is(4))
+
+                // Item discovery results remain newest first even when the
+                // imported source rows are not in chronological order.
+                .body("[0].orderNumber", is("ORDER-400"))
+                .body("[0].transactionDate", is("2026-07-13"))
                 .body("[0].itemSku", is("SKU-001"))
                 .body("[0].itemName", is("MILK"))
-                .body("[0].unitPrice", is(4.99F));
+                .body("[0].unitPrice", is(5.99F))
+
+                .body("[1].orderNumber", is("ORDER-300"))
+                .body("[1].unitPrice", is(4.79F))
+
+                .body("[2].orderNumber", is("ORDER-210"))
+                .body("[2].unitPrice", is(5.49F))
+
+                .body("[3].orderNumber", is("ORDER-100"))
+                .body("[3].unitPrice", is(4.99F));
     }
 
     @Test
-    void findsPurchaseByActualItemName(){
+    void findsPurchaseByActualItemName() {
         given()
                 .queryParam("query", "wheat")
                 .when()
@@ -39,7 +50,7 @@ public class ItemResourceTest {
     }
 
     @Test
-    void returnEmptyListWhenNothingMatches(){
+    void returnsEmptyListWhenNothingMatches() {
         given()
                 .queryParam("query", "NOT-A-REAL-ITEM")
                 .when()
@@ -57,6 +68,4 @@ public class ItemResourceTest {
                 .then()
                 .statusCode(400);
     }
-
-
 }

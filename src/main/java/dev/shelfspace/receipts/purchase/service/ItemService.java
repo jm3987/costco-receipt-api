@@ -87,4 +87,21 @@ public class ItemService {
         );
     }
 
+    /**
+     * Returns purchase history for one exact SKU.
+     *
+     * <p>The existing free-text search discovers possible matches. This final
+     * filter ensures that only purchases whose SKU exactly matches the requested
+     * identifier are returned.</p>
+     */
+    public List<ItemPurchase> findPurchasesBySku(String sku) {
+        String normalizedSku = sku.trim();
+
+        return findPurchaseHistory(normalizedSku).stream()
+                .filter(purchase ->
+                        normalizedSku.equals(purchase.itemSku())
+                )
+                .toList();
+    }
+
 }

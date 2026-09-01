@@ -11,16 +11,16 @@ import static org.hamcrest.Matchers.is;
 public class ReceiptSummaryResourceTest {
 
     @Test
-    void returnsReceiptSummary(){
+    void returnsReceiptSummary() {
         given()
                 .when()
                 .get("/api/receipts/summary")
                 .then()
                 .statusCode(200)
-                .body("rowCount", is(5))
-                .body("receiptCount", is(3))
+                .body("rowCount", is(13))
+                .body("receiptCount", is(8))
                 .body("firstPurchaseDate", is("2024-01-10"))
-                .body("lastPurchaseDate", is("2026-02-20"))
-                .body("totalSpending", is(39.88F));
+                .body("lastPurchaseDate", is("2026-07-13"))
+                .body("totalSpending", is(166.56F));
     }
 }

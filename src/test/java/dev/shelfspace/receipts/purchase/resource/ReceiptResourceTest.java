@@ -50,17 +50,22 @@ public class ReceiptResourceTest {
                 .statusCode(200)
                 .body("page", is(0))
                 .body("size", is(20))
-                .body("totalReceipts", is(3))
+                .body("totalReceipts", is(8))
                 .body("totalPages", is(1))
-                .body("receipts.size()", is(3))
+                .body("receipts.size()", is(8))
 
                 // The API contract requires newest-first ordering.
-                .body("receipts[0].orderNumber", is("ORDER-300"))
-                .body("receipts[0].transactionDate", is("2026-02-20"))
-                .body("receipts[0].finalTotal", is(16.24F))
+                .body("receipts[0].orderNumber", is("ORDER-400"))
+                .body("receipts[0].transactionDate", is("2026-07-13"))
+                .body("receipts[0].finalTotal", is(10.32F))
 
-                .body("receipts[1].orderNumber", is("ORDER-100"))
-                .body("receipts[2].orderNumber", is("ORDER-200"))
+                .body("receipts[1].orderNumber", is("ORDER-310"))
+                .body("receipts[2].orderNumber", is("ORDER-300"))
+                .body("receipts[3].orderNumber", is("ORDER-210"))
+                .body("receipts[4].orderNumber", is("ORDER-220"))
+                .body("receipts[5].orderNumber", is("ORDER-200"))
+                .body("receipts[6].orderNumber", is("ORDER-110"))
+                .body("receipts[7].orderNumber", is("ORDER-100"))
 
                 // Verify that the compact response includes the selected fields,
                 // even when warehouse information is not applicable.
@@ -79,12 +84,13 @@ public class ReceiptResourceTest {
                 .statusCode(200)
                 .body("page", is(1))
                 .body("size", is(2))
-                .body("totalReceipts", is(3))
-                .body("totalPages", is(2))
-                .body("receipts.size()", is(1))
-                // With newest-first ordering, ORDER-200 is the third receipt
-                // and therefore the only receipt on zero-based page 1.
-                .body("receipts[0].orderNumber", is("ORDER-200"));
+                .body("totalReceipts", is(8))
+                .body("totalPages", is(4))
+                .body("receipts.size()", is(2))
+                // Page 0 contains ORDER-400 and ORDER-310. The next two
+                // newest receipts therefore appear on zero-based page 1.
+                .body("receipts[0].orderNumber", is("ORDER-300"))
+                .body("receipts[1].orderNumber", is("ORDER-210"));
 
     }
 
@@ -97,11 +103,12 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts", hasSize(2))
+                .body("receipts", hasSize(3))
                 // The normal newest-first ordering is retained after filtering.
                 .body("receipts[0].orderNumber", equalTo("ORDER-300"))
-                .body("receipts[1].orderNumber", equalTo("ORDER-100"))
-                .body("totalReceipts", equalTo(2))
+                .body("receipts[1].orderNumber", equalTo("ORDER-210"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-220"))
+                .body("totalReceipts", equalTo(3))
                 .body("totalPages", equalTo(1));
     }
 
@@ -113,10 +120,13 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts", hasSize(2))
-                .body("receipts[0].orderNumber", equalTo("ORDER-300"))
-                .body("receipts[1].orderNumber", equalTo("ORDER-100"))
-                .body("totalReceipts", equalTo(2));
+                .body("receipts", hasSize(5))
+                .body("receipts[0].orderNumber", equalTo("ORDER-400"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-310"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-300"))
+                .body("receipts[3].orderNumber", equalTo("ORDER-210"))
+                .body("receipts[4].orderNumber", equalTo("ORDER-220"))
+                .body("totalReceipts", equalTo(5));
     }
 
     @Test
@@ -127,10 +137,13 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts", hasSize(2))
-                .body("receipts[0].orderNumber", equalTo("ORDER-100"))
-                .body("receipts[1].orderNumber", equalTo("ORDER-200"))
-                .body("totalReceipts", equalTo(2));
+                .body("receipts", hasSize(5))
+                .body("receipts[0].orderNumber", equalTo("ORDER-210"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-220"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-200"))
+                .body("receipts[3].orderNumber", equalTo("ORDER-110"))
+                .body("receipts[4].orderNumber", equalTo("ORDER-100"))
+                .body("totalReceipts", equalTo(5));
     }
 
     @Test
@@ -177,10 +190,13 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts", hasSize(1))
-                .body("receipts[0].orderNumber", equalTo("ORDER-100"))
+                .body("receipts", hasSize(4))
+                .body("receipts[0].orderNumber", equalTo("ORDER-400"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-210"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-220"))
+                .body("receipts[3].orderNumber", equalTo("ORDER-100"))
                 .body("receipts[0].receiptType", equalTo("warehouse"))
-                .body("totalReceipts", equalTo(1))
+                .body("totalReceipts", equalTo(4))
                 .body("totalPages", equalTo(1));
     }
 
@@ -192,10 +208,11 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts", hasSize(1))
+                .body("receipts", hasSize(2))
                 .body("receipts[0].orderNumber", equalTo("ORDER-300"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-200"))
                 .body("receipts[0].receiptType", equalTo("online"))
-                .body("totalReceipts", equalTo(1));
+                .body("totalReceipts", equalTo(2));
     }
 
     @Test
@@ -206,10 +223,11 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts", hasSize(1))
-                .body("receipts[0].orderNumber", equalTo("ORDER-200"))
+                .body("receipts", hasSize(2))
+                .body("receipts[0].orderNumber", equalTo("ORDER-310"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-110"))
                 .body("receipts[0].receiptType", equalTo("gas_station"))
-                .body("totalReceipts", equalTo(1));
+                .body("totalReceipts", equalTo(2));
     }
 
     @Test
@@ -221,11 +239,12 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                // ORDER-300 satisfies the date filter but is not a warehouse
-                // receipt, so the combined search must remain empty.
-                .body("receipts", empty())
-                .body("totalReceipts", equalTo(0))
-                .body("totalPages", equalTo(0));
+                // Several receipts satisfy the date filter, but only
+                // ORDER-400 is also a warehouse receipt.
+                .body("receipts", hasSize(1))
+                .body("receipts[0].orderNumber", equalTo("ORDER-400"))
+                .body("totalReceipts", equalTo(1))
+                .body("totalPages", equalTo(1));
     }
 
     @Test
@@ -249,31 +268,43 @@ public class ReceiptResourceTest {
     }
 
     @Test
-    void shouldSortReceiptsByDateAscending(){
+    void shouldSortReceiptsByDateAscending() {
         given()
                 .queryParam("sort", "date,asc")
                 .when()
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts", hasSize(3))
-                .body("receipts[0].orderNumber", equalTo("ORDER-200"))
-                .body("receipts[1].orderNumber", equalTo("ORDER-100"))
-                .body("receipts[2].orderNumber", equalTo("ORDER-300"));
+                .body("receipts", hasSize(8))
+                .body("receipts[0].orderNumber", equalTo("ORDER-100"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-110"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-200"))
+                // The two receipts on 2025-06-15 verify the deterministic
+                // ascending order-number tie-breaker.
+                .body("receipts[3].orderNumber", equalTo("ORDER-210"))
+                .body("receipts[4].orderNumber", equalTo("ORDER-220"))
+                .body("receipts[5].orderNumber", equalTo("ORDER-300"))
+                .body("receipts[6].orderNumber", equalTo("ORDER-310"))
+                .body("receipts[7].orderNumber", equalTo("ORDER-400"));
     }
 
     @Test
-    void shouldSortReceiptsByDateDescending(){
+    void shouldSortReceiptsByDateDescending() {
         given()
                 .queryParam("sort", "date,desc")
                 .when()
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts", hasSize(3))
-                .body("receipts[0].orderNumber", equalTo("ORDER-300"))
-                .body("receipts[1].orderNumber", equalTo("ORDER-100"))
-                .body("receipts[2].orderNumber", equalTo("ORDER-200"));
+                .body("receipts", hasSize(8))
+                .body("receipts[0].orderNumber", equalTo("ORDER-400"))
+                .body("receipts[1].orderNumber", equalTo("ORDER-310"))
+                .body("receipts[2].orderNumber", equalTo("ORDER-300"))
+                .body("receipts[3].orderNumber", equalTo("ORDER-210"))
+                .body("receipts[4].orderNumber", equalTo("ORDER-220"))
+                .body("receipts[5].orderNumber", equalTo("ORDER-200"))
+                .body("receipts[6].orderNumber", equalTo("ORDER-110"))
+                .body("receipts[7].orderNumber", equalTo("ORDER-100"));
     }
 
     @Test
@@ -284,8 +315,8 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                .body("receipts[0].orderNumber", equalTo("ORDER-200"))
-                .body("receipts[2].orderNumber", equalTo("ORDER-300"));
+                .body("receipts[0].orderNumber", equalTo("ORDER-100"))
+                .body("receipts[7].orderNumber", equalTo("ORDER-400"));
     }
 
     @Test
@@ -333,12 +364,12 @@ public class ReceiptResourceTest {
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
-                // ORDER-200 is excluded by the date filter. The two remaining
-                // receipts are sorted before the first page is selected.
+                // Six receipts remain after filtering. They are sorted before
+                // the first one-receipt page is selected.
                 .body("receipts", hasSize(1))
-                .body("receipts[0].orderNumber", equalTo("ORDER-100"))
-                .body("totalReceipts", equalTo(2))
-                .body("totalPages", equalTo(2));
+                .body("receipts[0].orderNumber", equalTo("ORDER-200"))
+                .body("totalReceipts", equalTo(6))
+                .body("totalPages", equalTo(6));
     }
 
     @Test
@@ -412,24 +443,24 @@ public class ReceiptResourceTest {
                 .statusCode(200)
                 .body("page", equalTo(0))
                 .body("size", equalTo(100))
-                .body("totalReceipts", equalTo(3))
+                .body("totalReceipts", equalTo(8))
                 .body("totalPages", equalTo(1));
     }
 
     @Test
     void shouldReturnEmptyPageWhenPageIsBeyondAvailableResults() {
         given()
-                .queryParam("page", 2)
+                .queryParam("page", 4)
                 .queryParam("size", 2)
                 .when()
                 .get("/api/receipts")
                 .then()
                 .statusCode(200)
                 .body("receipts", empty())
-                .body("page", equalTo(2))
+                .body("page", equalTo(4))
                 .body("size", equalTo(2))
-                .body("totalReceipts", equalTo(3))
-                .body("totalPages", equalTo(2));
+                .body("totalReceipts", equalTo(8))
+                .body("totalPages", equalTo(4));
     }
 
     @Test
@@ -445,7 +476,7 @@ public class ReceiptResourceTest {
                 .body("receipts", hasSize(1))
                 .body("page", equalTo(0))
                 .body("size", equalTo(1))
-                .body("totalReceipts", equalTo(2))
-                .body("totalPages", equalTo(2));
+                .body("totalReceipts", equalTo(6))
+                .body("totalPages", equalTo(6));
     }
 }
