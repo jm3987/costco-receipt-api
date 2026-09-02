@@ -4,7 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 public class ItemResourceTest {
@@ -67,5 +67,63 @@ public class ItemResourceTest {
                 .get("/api/items")
                 .then()
                 .statusCode(400);
+    }
+
+    @Test
+    void returnsPurchaseHistoryForExactSku() {
+        given()
+                .pathParam("sku", "SKU-001")
+                .when()
+                .get("/api/items/{sku}/purchases")
+                .then()
+                .statusCode(200)
+                .body("size()", is(4))
+                .body("itemSku", everyItem(is("SKU-001")))
+
+                // Exact-SKU history must be returned newest first.
+                .body("[0].orderNumber", is("ORDER-400"))
+                .body("[1].orderNumber", is("ORDER-300"))
+                .body("[2].orderNumber", is("ORDER-210"))
+                .body("[3].orderNumber", is("ORDER-100"));
+    }
+
+    @Test
+    void matchesExactSkuWhenDescriptionsDiffer() {
+        given()
+                .pathParam("sku", "SKU-001")
+                .when()
+                .get("/api/items/{sku}/purchases")
+                .then()
+                .statusCode(200)
+                .body("size()", is(4))
+                .body(
+                        "itemActualName",
+                        hasItems(
+                                "FRESH WHOLE MILK",
+                                "VITAMIN D MILK",
+                                "WHOLE MILK"
+                        )
+                )
+                .body("itemSku", everyItem(is("SKU-001")));
+    }
+
+    @Test
+    void returnsNotFoundForPartialSku() {
+        given()
+                .pathParam("sku", "SKU-00")
+                .when()
+                .get("/api/items/{sku}/purchases")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void returnsNotFoundForUnknownSku() {
+        given()
+                .pathParam("sku", "SKU-999")
+                .when()
+                .get("/api/items/{sku}/purchases")
+                .then()
+                .statusCode(404);
     }
 }
