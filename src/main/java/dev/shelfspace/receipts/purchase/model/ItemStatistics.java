@@ -26,6 +26,8 @@ public record ItemStatistics(
         BigDecimal lowestPrice,
         BigDecimal highestPrice,
         BigDecimal averagePrice,
-        BigDecimal latestPrice
+        BigDecimal latestPrice,
+        Long averageDaysBetweenPurchases,
+        long purchaseIntervalCount
 ) {
 }

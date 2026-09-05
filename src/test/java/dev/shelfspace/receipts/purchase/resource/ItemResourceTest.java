@@ -176,4 +176,45 @@ public class ItemResourceTest {
                 .then()
                 .statusCode(404);
     }
+
+    @Test
+    void returnsStatisticsAndPurchaseFrequencyForRecurringSku() {
+        given()
+                .when()
+                .get("/api/items/SKU-001/statistics")
+                .then()
+                .statusCode(200)
+                .body("sku", is("SKU-001"))
+                .body("displayName", is("FRESH WHOLE MILK"))
+                .body("receiptCount", is(4))
+                .body("firstPurchaseDate", is("2024-01-10"))
+                .body("lastPurchaseDate", is("2026-07-13"))
+                .body("lowestPrice", is(4.79F))
+                .body("highestPrice", is(5.99F))
+                .body("averagePrice", is(5.32F))
+                .body("latestPrice", is(5.99F))
+                .body("averageDaysBetweenPurchases", is(305))
+                .body("purchaseIntervalCount", is(3));
+    }
+
+    @Test
+    void returnsNoAverageIntervalForSkuPurchasedOnce() {
+        given()
+                .when()
+                .get("/api/items/SKU-005/statistics")
+                .then()
+                .statusCode(200)
+                .body("receiptCount", is(1))
+                .body("averageDaysBetweenPurchases", nullValue())
+                .body("purchaseIntervalCount", is(0));
+    }
+
+    @Test
+    void returnsNotFoundWhenStatisticsSkuDoesNotExist() {
+        given()
+                .when()
+                .get("/api/items/SKU-999/statistics")
+                .then()
+                .statusCode(404);
+    }
 }

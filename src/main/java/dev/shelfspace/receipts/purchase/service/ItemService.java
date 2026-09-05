@@ -12,10 +12,12 @@ import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 /**
@@ -123,36 +125,32 @@ public class ItemService {
      * <p>The established exact-SKU method remains the source of purchase history,
      * ensuring this calculation does not read or parse the CSV independently.</p>
      */
-    public Optional<ItemStatistics> calculateStatistics(String sku){
+    public Optional<ItemStatistics> calculateStatistics(String sku) {
         List<ItemPurchase> purchases = findPurchasesBySku(sku);
-        if(purchases.isEmpty()){
+
+        if (purchases.isEmpty()) {
             return Optional.empty();
         }
 
-        /**
-         * Prices statistics exclude zero and negative prices.
-         * Returns and refunds will be modeled separately.
-         */
+        // Refunds and non-purchase adjustments do not describe the price paid for
+        // a normal purchase, so only positive values participate in price metrics.
         List<ItemPurchase> positivePricePurchases = purchases.stream()
-                .filter(purchase ->
-                        purchase.unitPrice() != null &&
-                        purchase.unitPrice().compareTo(BigDecimal.ZERO) > 0
-                ).toList();
+                .filter(purchase -> purchase.unitPrice() != null
+                        && purchase.unitPrice().compareTo(BigDecimal.ZERO) > 0)
+                .toList();
 
-        if (positivePricePurchases.isEmpty()){
+        if (positivePricePurchases.isEmpty()) {
             throw new IllegalStateException(
-                    "No positive purchases prices are available for SKU '" + sku + "'."
+                    "No positive purchase prices are available for SKU '" + sku + "'."
             );
         }
 
+        // Exact-SKU history is newest first, so the first records supply the latest
+        // description and latest valid purchase price.
         ItemPurchase latestPurchase = purchases.get(0);
         ItemPurchase latestPositivePricePurchase = positivePricePurchases.get(0);
 
         long receiptCount = purchases.stream()
-                /**
-                 * One receipt can contain more than one row for same sku.
-                 * Receipt count measures purchase events rather than raw row items.
-                 */
                 .map(ItemPurchase::orderNumber)
                 .distinct()
                 .count();
@@ -178,6 +176,11 @@ public class ItemService {
                 .orElseThrow();
 
         BigDecimal averagePrice = calculateAveragePrice(positivePricePurchases);
+        List<PurchaseEvent> purchaseEvents =
+                findDistinctPurchaseEvents(purchases);
+        Long averageDaysBetweenPurchases =
+                calculateAverageDaysBetweenPurchases(purchaseEvents);
+        long purchaseIntervalCount = Math.max(0, purchaseEvents.size() - 1L);
 
         return Optional.of(new ItemStatistics(
                 latestPurchase.itemSku(),
@@ -188,10 +191,10 @@ public class ItemService {
                 lowestPrice,
                 highestPrice,
                 averagePrice,
-                latestPositivePricePurchase.unitPrice()
+                latestPositivePricePurchase.unitPrice(),
+                averageDaysBetweenPurchases,
+                purchaseIntervalCount
         ));
-
-
     }
 
 
@@ -214,5 +217,70 @@ public class ItemService {
         return purchase.itemSku();
     }
 
+    /**
+     * Identifies one purchase occurrence independently of duplicate item rows.
+     */
+    private record PurchaseEvent(
+            String orderNumber,
+            LocalDate transactionDate
+    ) {
+    }
 
+    /**
+     * Collapses duplicate SKU rows by receipt identity and returns chronological
+     * purchase events for interval calculations.
+     */
+    private List<PurchaseEvent> findDistinctPurchaseEvents(
+            List<ItemPurchase> purchases
+    ) {
+        return purchases.stream()
+                .collect(Collectors.toMap(
+                        ItemPurchase::orderNumber,
+                        purchase -> new PurchaseEvent(
+                                purchase.orderNumber(),
+                                purchase.transactionDate()
+                        ),
+                        // Repeated item rows from one receipt represent one event.
+                        (first, duplicate) -> first
+                ))
+                .values().stream()
+                .sorted(Comparator.comparing(PurchaseEvent::transactionDate)
+                        .thenComparing(PurchaseEvent::orderNumber))
+                .toList();
+    }
+
+     /**
+     * Calculates the typical whole-day interval between chronological purchases.
+     * A single purchase has no interval, so the average is intentionally absent.
+     */
+    private Long calculateAverageDaysBetweenPurchases(
+            List<PurchaseEvent> events
+    ) {
+
+        if (events.size() < 2) {
+            return null;
+        }
+
+        long totalDaysBetweenPurchases = 0;
+
+        for (int index = 1; index < events.size(); index++) {
+            PurchaseEvent previous = events.get(index - 1);
+            PurchaseEvent current = events.get(index);
+
+            totalDaysBetweenPurchases += ChronoUnit.DAYS.between(
+                    previous.transactionDate(),
+                    current.transactionDate()
+            );
+        }
+
+        int intervalCount = events.size() - 1;
+
+        return BigDecimal.valueOf(totalDaysBetweenPurchases)
+                .divide(
+                        BigDecimal.valueOf(intervalCount),
+                        0,
+                        RoundingMode.HALF_UP
+                )
+                .longValueExact();
+    }
 }
