@@ -2,15 +2,20 @@ package dev.shelfspace.receipts.purchase.service;
 
 
 import dev.shelfspace.receipts.purchase.model.ItemPurchase;
+import dev.shelfspace.receipts.purchase.model.ItemStatistics;
 import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
 import dev.shelfspace.receipts.purchase.model.ReceiptItem;
 import dev.shelfspace.receipts.purchase.repository.ReceiptRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 
 /**
@@ -18,6 +23,14 @@ import java.util.Locale;
  */
 @ApplicationScoped
 public class ItemService {
+    /*
+     * Currency averages use two decimal places. HALF_UP makes the rounding rule
+     * explicit and produces the behavior normally expected for positive prices:
+     * 5.315 becomes 5.32.
+     */
+    private static final int CURRENCY_SCALE = 2;
+    private static final RoundingMode CURRENCY_ROUNDING = RoundingMode.HALF_UP;
+
     private final ReceiptRepository receiptRepository;
 
     @Inject
@@ -103,5 +116,103 @@ public class ItemService {
                 )
                 .toList();
     }
+
+    /**
+     * Calculates purchase statistics for one exact SKU.
+     *
+     * <p>The established exact-SKU method remains the source of purchase history,
+     * ensuring this calculation does not read or parse the CSV independently.</p>
+     */
+    public Optional<ItemStatistics> calculateStatistics(String sku){
+        List<ItemPurchase> purchases = findPurchasesBySku(sku);
+        if(purchases.isEmpty()){
+            return Optional.empty();
+        }
+
+        /**
+         * Prices statistics exclude zero and negative prices.
+         * Returns and refunds will be modeled separately.
+         */
+        List<ItemPurchase> positivePricePurchases = purchases.stream()
+                .filter(purchase ->
+                        purchase.unitPrice() != null &&
+                        purchase.unitPrice().compareTo(BigDecimal.ZERO) > 0
+                ).toList();
+
+        if (positivePricePurchases.isEmpty()){
+            throw new IllegalStateException(
+                    "No positive purchases prices are available for SKU '" + sku + "'."
+            );
+        }
+
+        ItemPurchase latestPurchase = purchases.get(0);
+        ItemPurchase latestPositivePricePurchase = positivePricePurchases.get(0);
+
+        long receiptCount = purchases.stream()
+                /**
+                 * One receipt can contain more than one row for same sku.
+                 * Receipt count measures purchase events rather than raw row items.
+                 */
+                .map(ItemPurchase::orderNumber)
+                .distinct()
+                .count();
+
+        LocalDate firstPurchaseDate = purchases.stream()
+                .map(ItemPurchase::transactionDate)
+                .min(LocalDate::compareTo)
+                .orElseThrow();
+
+        LocalDate lastPurchaseDate = purchases.stream()
+                .map(ItemPurchase::transactionDate)
+                .max(LocalDate::compareTo)
+                .orElseThrow();
+
+        BigDecimal lowestPrice = positivePricePurchases.stream()
+                .map(ItemPurchase::unitPrice)
+                .min(BigDecimal::compareTo)
+                .orElseThrow();
+
+        BigDecimal highestPrice = positivePricePurchases.stream()
+                .map(ItemPurchase::unitPrice)
+                .max(BigDecimal::compareTo)
+                .orElseThrow();
+
+        BigDecimal averagePrice = calculateAveragePrice(positivePricePurchases);
+
+        return Optional.of(new ItemStatistics(
+                latestPurchase.itemSku(),
+                selectDisplayName(latestPurchase),
+                receiptCount,
+                firstPurchaseDate,
+                lastPurchaseDate,
+                lowestPrice,
+                highestPrice,
+                averagePrice,
+                latestPositivePricePurchase.unitPrice()
+        ));
+
+
+    }
+
+
+    private BigDecimal calculateAveragePrice(List<ItemPurchase> purchases) {
+        BigDecimal priceTotal = purchases.stream()
+                .map(ItemPurchase::unitPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return priceTotal.divide(BigDecimal.valueOf(purchases.size()), CURRENCY_SCALE, CURRENCY_ROUNDING);
+    }
+
+
+    private String selectDisplayName(ItemPurchase purchase) {
+        if (purchase.itemActualName() != null && !purchase.itemActualName().isBlank()){
+            return purchase.itemActualName();
+        }
+        if (purchase.itemName() != null && !purchase.itemName().isBlank()){
+            return purchase.itemName();
+        }
+        return purchase.itemSku();
+    }
+
 
 }

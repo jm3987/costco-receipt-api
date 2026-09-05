@@ -1,6 +1,7 @@
 package dev.shelfspace.receipts.purchase.resource;
 
 import dev.shelfspace.receipts.purchase.model.ItemPurchase;
+import dev.shelfspace.receipts.purchase.model.ItemStatistics;
 import dev.shelfspace.receipts.purchase.service.ItemService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -50,5 +51,15 @@ public class ItemResource {
         }
 
         return purchases;
+    }
+
+    @GET
+    @Path("/{sku}/statistics")
+    public ItemStatistics getStatisticsBySku(@PathParam("sku") String sku) {
+        return itemService.calculateStatistics(sku)
+                .orElseThrow(() -> new NotFoundException(
+                        "No purchase history was found for SKU '"
+                                + sku + "'."
+                ));
     }
 }

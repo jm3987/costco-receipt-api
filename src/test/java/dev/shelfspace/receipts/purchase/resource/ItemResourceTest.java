@@ -126,4 +126,54 @@ public class ItemResourceTest {
                 .then()
                 .statusCode(404);
     }
+
+    @Test
+    void returnsStatisticsForExactSku() {
+        given()
+                .pathParam("sku", "SKU-001")
+                .when()
+                .get("/api/items/{sku}/statistics")
+                .then()
+                .statusCode(200)
+                .body("sku", is("SKU-001"))
+                .body("displayName", is("FRESH WHOLE MILK"))
+                .body("receiptCount", is(4))
+                .body("firstPurchaseDate", is("2024-01-10"))
+                .body("lastPurchaseDate", is("2026-07-13"))
+                .body("lowestPrice", is(4.79F))
+                .body("highestPrice", is(5.99F))
+                // The unrounded mean is 5.315, proving the selected
+                // HALF_UP currency rule produces 5.32.
+                .body("averagePrice", is(5.32F))
+                .body("latestPrice", is(5.99F));
+    }
+
+    @Test
+    void returnsStatisticsForSinglePurchaseSku(){
+        given()
+                .pathParam("sku", "SKU-005")
+                .when()
+                .get("/api/items/{sku}/statistics")
+                .then()
+                .statusCode(200)
+                .body("sku", is("SKU-005"))
+                .body("displayName", is("LARGE EGGS"))
+                .body("receiptCount", is(1))
+                .body("firstPurchaseDate", is("2025-06-15"))
+                .body("lastPurchaseDate", is("2025-06-15"))
+                .body("lowestPrice", is(6.00F))
+                .body("highestPrice", is(6.00F))
+                .body("averagePrice", is(6.00F))
+                .body("latestPrice", is(6.00F));
+    }
+
+    @Test
+    void returnsNotFoundForUnknownSkuStatistics() {
+        given()
+                .pathParam("sku", "SKU-999")
+                .when()
+                .get("/api/items/{sku}/statistics")
+                .then()
+                .statusCode(404);
+    }
 }
