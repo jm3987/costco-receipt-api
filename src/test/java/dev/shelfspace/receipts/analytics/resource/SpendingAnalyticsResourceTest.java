@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
@@ -49,5 +50,93 @@ public class SpendingAnalyticsResourceTest {
                 .body("[6].month", is("2026-07"))
                 .body("[6].receiptCount", is(1))
                 .body("[6].totalSpending", is(10.32F));
+    }
+
+    @Test
+    void filtersMonthlySpendingUsingInclusiveDateRange() {
+        given()
+                .queryParam("from", "2025-01-05")
+                .queryParam("to", "2025-06-15")
+                .when()
+                .get("/api/analytics/spending/monthly")
+                .then()
+                .statusCode(200)
+                .body("size()", is(2))
+                .body("[0].month", is("2025-01"))
+                .body("[0].receiptCount", is(1))
+                .body("[0].totalSpending", is(15.00F))
+                .body("[1].month", is("2025-06"))
+                .body("[1].receiptCount", is(2))
+                .body("[1].totalSpending", is(26.00F));
+    }
+
+    @Test
+    void filtersMonthlySpendingFromDateWithoutUpperBoundary() {
+        given()
+                .queryParam("from", "2026-02-20")
+                .when()
+                .get("/api/analytics/spending/monthly")
+                .then()
+                .statusCode(200)
+                .body("size()", is(3))
+                .body("[0].month", is("2026-02"))
+                .body("[0].totalSpending", is(22.00F))
+                .body("[1].month", is("2026-04"))
+                .body("[2].month", is("2026-07"));
+    }
+
+    @Test
+    void filtersMonthlySpendingToDateWithoutLowerBoundary() {
+        given()
+                .queryParam("to", "2025-01-05")
+                .when()
+                .get("/api/analytics/spending/monthly")
+                .then()
+                .statusCode(200)
+                .body("size()", is(3))
+                .body("[0].month", is("2024-01"))
+                .body("[1].month", is("2024-03"))
+                .body("[2].month", is("2025-01"))
+                .body("[2].totalSpending", is(15.00F));
+    }
+
+    @Test
+    void returnsEmptyMonthlySpendingWhenDateRangeHasNoReceipts() {
+        given()
+                .queryParam("from", "2030-01-01")
+                .when()
+                .get("/api/analytics/spending/monthly")
+                .then()
+                .statusCode(200)
+                .body("size()", is(0));
+    }
+
+    @Test
+    void rejectsMonthlySpendingDateRangeWhenFromIsAfterTo() {
+        given()
+                .queryParam("from", "2026-01-01")
+                .queryParam("to", "2025-01-01")
+                .when()
+                .get("/api/analytics/spending/monthly")
+                .then()
+                .statusCode(400)
+                .body("code", is("INVALID_SPENDING_ANALYTICS_QUERY"))
+                .body(
+                        "message",
+                        is("Query parameter 'from' must not be after 'to'.")
+                );
+    }
+
+    @Test
+    void rejectsMalformedMonthlySpendingDate() {
+        given()
+                .queryParam("to", "not-a-date")
+                .when()
+                .get("/api/analytics/spending/monthly")
+                .then()
+                .statusCode(400)
+                .body("code", is("INVALID_DATE_PARAMETER"))
+                .body("message", containsString("Query parameter 'to'"))
+                .body("message", containsString("YYYY-MM-DD"));
     }
 }

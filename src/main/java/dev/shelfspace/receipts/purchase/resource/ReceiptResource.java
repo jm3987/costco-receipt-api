@@ -9,9 +9,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import java.text.ParseException;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
+import static dev.shelfspace.receipts.common.web.QueryParameterParser.parseOptionalDate;
 
 @Path("/api/receipts")
 @Produces(MediaType.APPLICATION_JSON)
@@ -45,8 +43,8 @@ public class ReceiptResource {
             @QueryParam("size") @DefaultValue("20") int size
     ) {
         ReceiptQuery query = new ReceiptQuery(
-                parseDate(from, "from"),
-                parseDate(to, "to"),
+                parseOptionalDate(from, "from"),
+                parseOptionalDate(to, "to"),
                 parsePurchaseType(type),
                 parseReceiptSort(sort),
                 page,
@@ -59,30 +57,6 @@ public class ReceiptResource {
             throw badRequest(
                     "INVALID_RECEIPT_QUERY",
                     exception.getMessage(),
-                    exception
-            );
-        }
-    }
-
-    /**
-     * Converts an optional ISO-8601 query parameter into a LocalDate.
-     *
-     * @param value raw query parameter value, or null when it was not supplied
-     * @param parameterName parameter name used in validation messages
-     * @return the parsed date, or null for an omitted parameter
-     */
-    private LocalDate parseDate(String value, String parameterName) {
-        if (value == null || value.isBlank()) {
-            // Missing dates represent open-ended ranges rather than errors.
-            return null;
-        }
-
-        try {
-            return LocalDate.parse(value);
-        } catch (DateTimeParseException exception) {
-            throw new BadRequestException(
-                    "Query parameter '" + parameterName
-                            + "' must use the YYYY-MM-DD format.",
                     exception
             );
         }

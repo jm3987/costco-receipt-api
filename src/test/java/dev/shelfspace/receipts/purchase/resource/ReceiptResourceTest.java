@@ -179,7 +179,14 @@ public class ReceiptResourceTest {
                 .when()
                 .get("/api/receipts")
                 .then()
-                .statusCode(400);
+                .statusCode(400)
+                .body("code", equalTo("INVALID_DATE_PARAMETER"))
+                .body(
+                        "message",
+                        equalTo(
+                                "Query parameter 'from' must use the YYYY-MM-DD format."
+                        )
+                );
     }
 
     @Test

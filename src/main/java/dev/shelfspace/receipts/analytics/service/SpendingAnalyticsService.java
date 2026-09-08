@@ -1,6 +1,7 @@
 package dev.shelfspace.receipts.analytics.service;
 
 import dev.shelfspace.receipts.analytics.model.MonthlySpending;
+import dev.shelfspace.receipts.analytics.model.SpendingAnalyticsQuery;
 import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
 import dev.shelfspace.receipts.purchase.repository.ReceiptRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -23,17 +24,15 @@ public class SpendingAnalyticsService {
     }
 
     /**
-     * Calculates net spending by month in chronological order.
+     * Calculates net spending by month for the requested inclusive date range.
      */
-    public List<MonthlySpending> getMonthlySpending(){
-        Map<YearMonth, List<ReceiptDetail>> receiptsByMonth = receiptRepository.findAll()
-                .stream()
+    public List<MonthlySpending> findMonthlySpending(SpendingAnalyticsQuery query) {
+        Map<YearMonth, List<ReceiptDetail>> receiptsByMonth = receiptRepository.findAll().stream()
+                .filter(receipt -> query.includes(receipt.transactionDate()))
                 .collect(Collectors.groupingBy(
-                        receipt -> YearMonth.from(
-                                receipt.transactionDate()
-                        ),
-                        //Chronological ordering is part of the API
-                        //contract because chart consumers rely on it.
+                        receipt -> YearMonth.from(receipt.transactionDate()),
+                        // Chronological ordering is part of the API contract
+                        // because chart consumers rely on it.
                         TreeMap::new,
                         Collectors.toList()
                 ));
@@ -48,8 +47,8 @@ public class SpendingAnalyticsService {
                 .toList();
     }
 
-    private BigDecimal calculateNetSpending(List<ReceiptDetail> receipts){
-        //ReceiptDetail represents one complete receipt, so finalTotal
+    private BigDecimal calculateNetSpending(List<ReceiptDetail> receipts) {
+        // ReceiptDetail represents one complete receipt, so finalTotal
         // is counted once even when that receipt contains many items.
         return receipts.stream()
                 .map(ReceiptDetail::finalTotal)
