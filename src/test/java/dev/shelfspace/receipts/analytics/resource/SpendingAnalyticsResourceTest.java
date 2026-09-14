@@ -128,6 +128,86 @@ public class SpendingAnalyticsResourceTest {
     }
 
     @Test
+    void returnsRangeWideSpendingByTypeAndGrandTotal() {
+        given()
+                .queryParam("from", "2025-01-05")
+                .queryParam("to", "2025-06-15")
+                .when()
+                .get("/api/analytics/spending/by-type")
+                .then()
+                .statusCode(200)
+                .body("grandTotalSpending", is(41.00F))
+                .body("breakdown.size()", is(3))
+                .body("breakdown[0].purchaseType", is("warehouse"))
+                .body("breakdown[0].receiptCount", is(2))
+                .body("breakdown[0].totalSpending", is(26.00F))
+                .body("breakdown[1].purchaseType", is("gas_station"))
+                .body("breakdown[1].receiptCount", is(0))
+                .body("breakdown[1].totalSpending", is(0))
+                .body("breakdown[2].purchaseType", is("online"))
+                .body("breakdown[2].receiptCount", is(1))
+                .body("breakdown[2].totalSpending", is(15.00F));
+    }
+
+    @Test
+    void includesAllThreePurchaseTypesInGrandTotal() {
+        given()
+                .when()
+                .get("/api/analytics/spending/by-type")
+                .then()
+                .statusCode(200)
+                .body("grandTotalSpending", is(166.56F))
+                .body("breakdown.size()", is(3))
+                .body("breakdown[0].purchaseType", is("warehouse"))
+                .body("breakdown[0].totalSpending", is(44.56F))
+                .body("breakdown[1].purchaseType", is("gas_station"))
+                .body("breakdown[1].totalSpending", is(85.00F))
+                .body("breakdown[2].purchaseType", is("online"))
+                .body("breakdown[2].totalSpending", is(37.00F));
+    }
+
+    @Test
+    void returnsZeroSpendingByTypeWhenDateRangeHasNoReceipts() {
+        given()
+                .queryParam("from", "2030-01-01")
+                .when()
+                .get("/api/analytics/spending/by-type")
+                .then()
+                .statusCode(200)
+                .body("grandTotalSpending", is(0))
+                .body("breakdown.size()", is(3))
+                .body("breakdown[0].receiptCount", is(0))
+                .body("breakdown[1].receiptCount", is(0))
+                .body("breakdown[2].receiptCount", is(0));
+    }
+
+    @Test
+    void rejectsSpendingByTypeWhenFromIsAfterTo() {
+        given()
+                .queryParam("from", "2026-01-01")
+                .queryParam("to", "2025-01-01")
+                .when()
+                .get("/api/analytics/spending/by-type")
+                .then()
+                .statusCode(400)
+                .body("code", is("INVALID_SPENDING_ANALYTICS_QUERY"))
+                .body("message", is("Query parameter 'from' must not be after 'to'."));
+    }
+
+    @Test
+    void rejectsMalformedSpendingByTypeDate() {
+        given()
+                .queryParam("to", "not-a-date")
+                .when()
+                .get("/api/analytics/spending/by-type")
+                .then()
+                .statusCode(400)
+                .body("code", is("INVALID_DATE_PARAMETER"))
+                .body("message", containsString("Query parameter 'to'"))
+                .body("message", containsString("YYYY-MM-DD"));
+    }
+
+    @Test
     void rejectsMalformedMonthlySpendingDate() {
         given()
                 .queryParam("to", "not-a-date")

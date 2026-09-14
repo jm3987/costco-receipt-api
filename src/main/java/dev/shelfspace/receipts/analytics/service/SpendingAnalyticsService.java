@@ -1,14 +1,19 @@
 package dev.shelfspace.receipts.analytics.service;
 
 import dev.shelfspace.receipts.analytics.model.MonthlySpending;
+import dev.shelfspace.receipts.analytics.model.SpendingByType;
+import dev.shelfspace.receipts.analytics.model.SpendingByTypeSummary;
 import dev.shelfspace.receipts.analytics.model.SpendingAnalyticsQuery;
 import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
+import dev.shelfspace.receipts.purchase.model.PurchaseType;
 import dev.shelfspace.receipts.purchase.repository.ReceiptRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -45,6 +50,34 @@ public class SpendingAnalyticsService {
                         calculateNetSpending(entry.getValue())
                 ))
                 .toList();
+    }
+
+    /** Calculates one total per purchase type and a grand total for the inclusive range. */
+    public SpendingByTypeSummary findSpendingByType(SpendingAnalyticsQuery query) {
+        Map<PurchaseType, List<ReceiptDetail>> receiptsByType = new EnumMap<>(PurchaseType.class);
+        for (PurchaseType type : PurchaseType.values()) {
+            receiptsByType.put(type, new ArrayList<>());
+        }
+
+        for (ReceiptDetail receipt : receiptRepository.findAll()) {
+            if (query.includes(receipt.transactionDate())) {
+                receiptsByType.get(PurchaseType.fromValue(receipt.receiptType())).add(receipt);
+            }
+        }
+
+        List<SpendingByType> breakdown = receiptsByType.entrySet().stream()
+                .map(entry -> new SpendingByType(
+                        entry.getKey().value(),
+                        entry.getValue().size(),
+                        calculateNetSpending(entry.getValue())
+                ))
+                .toList();
+
+        BigDecimal grandTotalSpending = breakdown.stream()
+                .map(SpendingByType::totalSpending)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new SpendingByTypeSummary(grandTotalSpending, breakdown);
     }
 
     private BigDecimal calculateNetSpending(List<ReceiptDetail> receipts) {

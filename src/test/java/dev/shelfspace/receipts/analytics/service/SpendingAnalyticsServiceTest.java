@@ -1,6 +1,8 @@
 package dev.shelfspace.receipts.analytics.service;
 
 import dev.shelfspace.receipts.analytics.model.MonthlySpending;
+import dev.shelfspace.receipts.analytics.model.SpendingByType;
+import dev.shelfspace.receipts.analytics.model.SpendingByTypeSummary;
 import dev.shelfspace.receipts.analytics.model.SpendingAnalyticsQuery;
 import dev.shelfspace.receipts.purchase.model.ReceiptDetail;
 import dev.shelfspace.receipts.purchase.repository.ReceiptRepository;
@@ -41,13 +43,43 @@ class SpendingAnalyticsServiceTest {
         );
     }
 
+    @Test
+    void totalsSpendingByPurchaseTypeAcrossDateRange() {
+        ReceiptRepository repository = new StubReceiptRepository(List.of(
+                receipt("ORDER-1", "2025-06-01", "warehouse", "10.00"),
+                receipt("ORDER-2", "2025-06-15", "gas_station", "20.00"),
+                receipt("ORDER-3", "2025-07-20", "warehouse", "30.00"),
+                receipt("ORDER-4", "2025-08-01", "online", "99.00")
+        ));
+        SpendingAnalyticsService service = new SpendingAnalyticsService(repository);
+        SpendingAnalyticsQuery query = new SpendingAnalyticsQuery(
+                LocalDate.parse("2025-06-01"),
+                LocalDate.parse("2025-07-31")
+        );
+
+        SpendingByTypeSummary result = service.findSpendingByType(query);
+
+        assertEquals(new SpendingByTypeSummary(
+                new BigDecimal("60.00"),
+                List.of(
+                        new SpendingByType("warehouse", 2, new BigDecimal("40.00")),
+                        new SpendingByType("gas_station", 1, new BigDecimal("20.00")),
+                        new SpendingByType("online", 0, BigDecimal.ZERO)
+                )
+        ), result);
+    }
+
     private ReceiptDetail receipt(String orderNumber, String date, String finalTotal) {
+        return receipt(orderNumber, date, "warehouse", finalTotal);
+    }
+
+    private ReceiptDetail receipt(String orderNumber, String date, String type, String finalTotal) {
         BigDecimal total = new BigDecimal(finalTotal);
 
         return new ReceiptDetail(
                 orderNumber,
                 "RECEIPT-" + orderNumber,
-                "warehouse",
+                type,
                 LocalDate.parse(date),
                 "TEST WAREHOUSE",
                 total,
