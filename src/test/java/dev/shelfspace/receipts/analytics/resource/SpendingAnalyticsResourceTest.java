@@ -219,4 +219,66 @@ public class SpendingAnalyticsResourceTest {
                 .body("message", containsString("Query parameter 'to'"))
                 .body("message", containsString("YYYY-MM-DD"));
     }
+
+    @Test
+    void returnsMonthlySpendingByTypeWithinInclusiveDateRange() {
+        given()
+                .queryParam("from", "2025-01-05")
+                .queryParam("to", "2025-06-15")
+                .when()
+                .get("/api/analytics/spending/monthly/by-type")
+                .then()
+                .statusCode(200)
+                .body("size()", is(2))
+
+                .body("[0].month", is("2025-01"))
+                .body("[0].purchaseType", is("online"))
+                .body("[0].receiptCount", is(1))
+                .body("[0].totalSpending", is(15.00F))
+
+                .body("[1].month", is("2025-06"))
+                .body("[1].purchaseType", is("warehouse"))
+                .body("[1].receiptCount", is(2))
+                .body("[1].totalSpending", is(26.00F));
+    }
+
+    @Test
+    void returnsEmptyMonthlySpendingByTypeWhenDateRangeHasNoReceipts() {
+        given()
+                .queryParam("from", "2030-01-01")
+                .when()
+                .get("/api/analytics/spending/monthly/by-type")
+                .then()
+                .statusCode(200)
+                .body("size()", is(0));
+    }
+
+    @Test
+    void rejectsMonthlySpendingByTypeWhenFromIsAfterTo() {
+        given()
+                .queryParam("from", "2026-01-01")
+                .queryParam("to", "2025-01-01")
+                .when()
+                .get("/api/analytics/spending/monthly/by-type")
+                .then()
+                .statusCode(400)
+                .body("code", is("INVALID_SPENDING_ANALYTICS_QUERY"))
+                .body(
+                        "message",
+                        is("Query parameter 'from' must not be after 'to'.")
+                );
+    }
+
+    @Test
+    void rejectsMalformedMonthlySpendingByTypeDate() {
+        given()
+                .queryParam("to", "not-a-date")
+                .when()
+                .get("/api/analytics/spending/monthly/by-type")
+                .then()
+                .statusCode(400)
+                .body("code", is("INVALID_DATE_PARAMETER"))
+                .body("message", containsString("Query parameter 'to'"))
+                .body("message", containsString("YYYY-MM-DD"));
+    }
 }

@@ -1,6 +1,7 @@
 package dev.shelfspace.receipts.analytics.service;
 
 import dev.shelfspace.receipts.analytics.model.MonthlySpending;
+import dev.shelfspace.receipts.analytics.model.MonthlySpendingByType;
 import dev.shelfspace.receipts.analytics.model.SpendingByType;
 import dev.shelfspace.receipts.analytics.model.SpendingByTypeSummary;
 import dev.shelfspace.receipts.analytics.model.SpendingAnalyticsQuery;
@@ -12,11 +13,7 @@ import jakarta.inject.Inject;
 
 import java.math.BigDecimal;
 import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -78,6 +75,45 @@ public class SpendingAnalyticsService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new SpendingByTypeSummary(grandTotalSpending, breakdown);
+    }
+
+    public List<MonthlySpendingByType> findMonthlySpendingByType(
+            SpendingAnalyticsQuery query
+    ){
+        Map<YearMonth, Map<PurchaseType, List<ReceiptDetail> >> receiptsByMonthAndType =
+                new TreeMap<>();
+
+        for (ReceiptDetail receipt : receiptRepository.findAll()) {
+            if (!query.includes(receipt.transactionDate())){
+                continue;
+            }
+
+            YearMonth month = YearMonth.from(receipt.transactionDate());
+            PurchaseType type = PurchaseType.fromValue(receipt.receiptType());
+
+            Map<PurchaseType, List<ReceiptDetail>> receiptsByType =
+                    receiptsByMonthAndType.computeIfAbsent(
+                            month, ignored -> new EnumMap<>(PurchaseType.class)
+                    );
+
+            receiptsByType.computeIfAbsent(type, ignored -> new ArrayList<>())
+                    .add(receipt);
+        }
+
+        List<MonthlySpendingByType> results = new ArrayList<>();
+        for (var monthEntry : receiptsByMonthAndType.entrySet()) {
+            for (var typeEntry : monthEntry.getValue().entrySet()) {
+                List<ReceiptDetail> receipts = typeEntry.getValue();
+                results.add(new MonthlySpendingByType(
+                        monthEntry.getKey(),
+                        typeEntry.getKey().value(),
+                        receipts.size(),
+                        calculateNetSpending(receipts)
+                ));
+            }
+
+        }
+        return results;
     }
 
     private BigDecimal calculateNetSpending(List<ReceiptDetail> receipts) {

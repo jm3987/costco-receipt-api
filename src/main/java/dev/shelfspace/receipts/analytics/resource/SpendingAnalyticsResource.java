@@ -1,6 +1,7 @@
 package dev.shelfspace.receipts.analytics.resource;
 
 import dev.shelfspace.receipts.analytics.model.MonthlySpending;
+import dev.shelfspace.receipts.analytics.model.MonthlySpendingByType;
 import dev.shelfspace.receipts.analytics.model.SpendingByTypeSummary;
 import dev.shelfspace.receipts.analytics.model.SpendingAnalyticsQuery;
 import dev.shelfspace.receipts.analytics.service.SpendingAnalyticsService;
@@ -62,6 +63,27 @@ public class SpendingAnalyticsResource {
             );
 
             return spendingAnalyticsService.findSpendingByType(query);
+        } catch (IllegalArgumentException exception) {
+            throw badRequest(
+                    "INVALID_SPENDING_ANALYTICS_QUERY",
+                    exception.getMessage(),
+                    exception
+            );
+        }
+    }
+
+    @GET
+    @Path("/monthly/by-type")
+    public List<MonthlySpendingByType> getMonthlySpendingByType(
+            @QueryParam("from") String from,
+            @QueryParam("to") String to
+    ){
+        try {
+            SpendingAnalyticsQuery query = new SpendingAnalyticsQuery(
+                    QueryParameterParser.parseOptionalDate(from, "from"),
+                    QueryParameterParser.parseOptionalDate(to, "to")
+            );
+            return spendingAnalyticsService.findMonthlySpendingByType(query);
         } catch (IllegalArgumentException exception) {
             throw badRequest(
                     "INVALID_SPENDING_ANALYTICS_QUERY",
